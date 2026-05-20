@@ -9,3 +9,12 @@ dist/
 
 # OS files
 .DS_Store
+
+# Reference / mirror folders (not part of the app)
+mirror/
+first loaded page reference/
+map reference/
+book/
+
+# PDF
+Creative_Direction_Brief.pdf
