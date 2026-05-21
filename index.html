@@ -222,7 +222,7 @@
             </g>
 
             <!-- Clouds -->
-            <g fill="#e8e4dc" opacity=".15">
+            <g id="map-clouds" fill="#e8e4dc" opacity=".15">
               <ellipse cx="500" cy="100" rx="80" ry="25"/><ellipse cx="480" cy="90" rx="50" ry="20"/>
               <ellipse cx="1900" cy="120" rx="70" ry="22"/><ellipse cx="1920" cy="110" rx="45" ry="18"/>
               <ellipse cx="2700" cy="180" rx="60" ry="20"/>
@@ -230,7 +230,7 @@
               <ellipse cx="400" cy="1700" rx="65" ry="20"/>
             </g>
             <!-- Birds -->
-            <g stroke="#8a7a6a" stroke-width="1.5" fill="none" opacity=".12">
+            <g id="map-birds" stroke="#8a7a6a" stroke-width="1.5" fill="none" opacity=".12">
               <path d="M700,150 Q710,140 720,150 Q730,140 740,150"/>
               <path d="M2200,200 Q2210,190 2220,200 Q2230,190 2240,200"/>
               <path d="M1300,80 Q1310,70 1320,80"/>
@@ -264,7 +264,7 @@
               <circle cx="18" cy="32" r="6" fill="#c8d9d1"/><circle cx="38" cy="34" r="5" fill="#b5c9c0"/><circle cx="55" cy="32" r="6" fill="#c8d9d1"/>
             </g>
             <!-- Hot air balloon -->
-            <g transform="translate(2600,100)" opacity=".2">
+            <g id="map-balloon" transform="translate(2600,100)" opacity=".2">
               <ellipse cx="0" cy="0" rx="45" ry="55" fill="none" stroke="#c8d9d1" stroke-width="2"/><path d="M-20,50 L-15,80 L15,80 L20,50" fill="none" stroke="#8a7a6a" stroke-width="1.5"/>
               <rect x="-12" y="80" width="24" height="16" rx="3" fill="none" stroke="#8a7a6a" stroke-width="1.5"/>
             </g>
@@ -303,6 +303,32 @@
             </g>
           </svg>
 
+          <!-- The Journey Path: Awareness to Understanding -->
+          <svg class="map__journey" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <mask id="journey-mask">
+                <!-- Solid white mask paths that get animated -->
+                <path id="mask-p1" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" d="M 18,27 C 35,35 45,5 38,18 C 33,26 50,22 61,15" />
+                <path id="mask-p2" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" d="M 66,21 C 75,35 45,45 55,50 C 62,54 40,55 32,67" />
+                <path id="mask-p3" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" d="M 40,73.5 C 48,85 62,85 55,75 C 50,67 60,68 71,63" />
+              </mask>
+            </defs>
+
+            <!-- Background faint dashed paths (always visible) -->
+            <g class="journey__path-base">
+              <path vector-effect="non-scaling-stroke" d="M 18,27 C 35,35 45,5 38,18 C 33,26 50,22 61,15" />
+              <path vector-effect="non-scaling-stroke" d="M 66,21 C 75,35 45,45 55,50 C 62,54 40,55 32,67" />
+              <path vector-effect="non-scaling-stroke" d="M 40,73.5 C 48,85 62,85 55,75 C 50,67 60,68 71,63" />
+            </g>
+
+            <!-- Active glowing dashed paths (masked) -->
+            <g class="journey__path-active" mask="url(#journey-mask)">
+              <path vector-effect="non-scaling-stroke" d="M 18,27 C 35,35 45,5 38,18 C 33,26 50,22 61,15" />
+              <path vector-effect="non-scaling-stroke" d="M 66,21 C 75,35 45,45 55,50 C 62,54 40,55 32,67" />
+              <path vector-effect="non-scaling-stroke" d="M 40,73.5 C 48,85 62,85 55,75 C 50,67 60,68 71,63" />
+            </g>
+          </svg>
+
           <!-- Chapter hotspots — scattered organically -->
           <button class="map__ch" data-ch="0" style="left:8%; top:22%;" id="ch-nutrition">
             <span class="map__ch-pre">CH.</span>
@@ -333,6 +359,9 @@
           </button>
 
         </div>
+
+        <!-- Backdrop overlay -->
+        <div class="map__backdrop" id="map-backdrop"></div>
 
         <!-- Detail Card (slides up from bottom like reference) -->
         <div class="map__card" id="map-card">

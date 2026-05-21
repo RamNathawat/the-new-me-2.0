@@ -33,10 +33,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Observer } from 'gsap/Observer';
 import Lenis from 'lenis';
 import './map.css';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, Observer);
 
 /* ─── Helpers ─────────────────────────────────── */
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -75,7 +76,7 @@ const POSE = {
     sc: 1.1,
   },
   side: {
-    x: -0.85, y: 0.05, z: 0,
+    x: -1.0, y: 0.05, z: 0,
     rx: -0.04, ry: -0.15, rz: 0.03,
     sc: 0.75,
   },
@@ -297,6 +298,7 @@ function initChapterMap() {
   const card = document.getElementById('map-card');
   const closeBtn = document.getElementById('map-card-close');
   const closeFloat = document.getElementById('map-close-float');
+  const backdrop = document.getElementById('map-backdrop');
   const prevBtn = document.getElementById('card-prev');
   const nextBtn = document.getElementById('card-next');
   
@@ -320,12 +322,14 @@ function initChapterMap() {
     mcBody.innerHTML = data.body;
 
     card.classList.add('open');
+    backdrop?.classList.add('on');
     closeFloat.style.display = 'flex';
   }
 
   function closeChapter() {
     cardOpen = false;
     card.classList.remove('open');
+    backdrop?.classList.remove('on');
     closeFloat.style.display = 'none';
   }
 
@@ -339,6 +343,7 @@ function initChapterMap() {
 
   closeBtn.addEventListener('click', closeChapter);
   closeFloat.addEventListener('click', closeChapter);
+  backdrop?.addEventListener('click', closeChapter);
   
   prevBtn.addEventListener('click', () => {
     if (currentCh > 0) openChapter(currentCh - 1);
@@ -461,11 +466,39 @@ function choreograph(book) {
     onUpdate: (s) => { book.toFill = s.progress; }
   });
 
-  // Map fades in only AFTER zoom is near completion
-  g.fromTo('#map-viewport', 
+  // ━━━━ MAP ANIMATION ━━━━
+  // Fade in the viewport to avoid flashing
+  gsap.fromTo('#map-viewport', 
     { opacity: 0 },
-    { opacity: 1, scrollTrigger: { trigger: '#s-map', start: 'top 35%', end: 'top 5%', scrub: 1.5 } }
+    { 
+      opacity: 1, 
+      scrollTrigger: {
+        trigger: '#s-map',
+        start: 'top 30%', 
+        end: 'top top',
+        scrub: 1
+      }
+    }
   );
+
+  // Draw the Journey Path (Awareness -> Understanding)
+  const maskPaths = ['#mask-p1', '#mask-p2', '#mask-p3'];
+  const journeyTl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#s-map',
+      start: 'top 50%',
+      toggleActions: 'play none none reverse'
+    }
+  });
+
+  maskPaths.forEach((id) => {
+    const p = document.querySelector(id);
+    if (p) {
+      const len = p.getTotalLength();
+      gsap.set(p, { strokeDasharray: len, strokeDashoffset: len });
+      journeyTl.to(p, { strokeDashoffset: 0, duration: 0.8, ease: 'power1.inOut' });
+    }
+  });
 
   // Book fades AFTER zoom completes, before intro appears
   ScrollTrigger.create({
@@ -547,12 +580,110 @@ function boot() {
   });
   lenis.on('scroll', ScrollTrigger.update);
 
+  // ── CUSTOM FULLPAGE SCROLL ──
+  const sections = ['#s-hero', '#s-story-1', '#s-story-2', '#s-map', '#s-author', '.site-footer'];
+  let currentSection = 0;
+  let isAnimating = false;
+  let lastDelta = 0;
+  let lastTime = 0;
+
+  function goToSection(index) {
+    if (index < 0 || index >= sections.length) return;
+    
+    // Automatically close the chapter card if it's open
+    document.getElementById('map-card-close')?.click();
+    
+    isAnimating = true;
+    currentSection = index;
+    
+    lenis.scrollTo(sections[currentSection], {
+      duration: 1.6,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      onComplete: () => {
+        isAnimating = false;
+      }
+    });
+  }
+
+  setTimeout(() => {
+    let minDiff = Infinity;
+    sections.forEach((selector, i) => {
+      const el = document.querySelector(selector);
+      if (el) {
+        const diff = Math.abs(el.getBoundingClientRect().top);
+        if (diff < minDiff) {
+          minDiff = diff;
+          currentSection = i;
+        }
+      }
+    });
+  }, 100);
+
+  Observer.create({
+    type: 'wheel,touch',
+    wheelSpeed: -1,
+    onDown: () => {
+      if (!isAnimating) goToSection(currentSection + 1);
+    },
+    onUp: () => {
+      if (!isAnimating) goToSection(currentSection - 1);
+    },
+    tolerance: 10,
+    preventDefault: true,
+    ignore: '#map-card-inner, #map-card-inner *'
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target.closest('#map-card-inner')) return;
+    
+    if (['ArrowDown', 'ArrowUp', 'Space', 'PageDown', 'PageUp'].includes(e.code)) {
+      e.preventDefault();
+      if (isAnimating) return;
+      
+      if (e.code === 'ArrowDown' || e.code === 'PageDown' || e.code === 'Space') {
+        goToSection(currentSection + 1);
+      } else if (e.code === 'ArrowUp' || e.code === 'PageUp') {
+        goToSection(currentSection - 1);
+      }
+    }
+  }, { passive: false });
+
   document.querySelectorAll('.nav-pill[href^="#"]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      const target = document.querySelector(link.getAttribute('href'));
-      if (target) lenis.scrollTo(target, { duration: 2 });
+      const href = link.getAttribute('href');
+      const index = sections.indexOf(href);
+      if (index !== -1) {
+        goToSection(index);
+      } else {
+        const target = document.querySelector(href);
+        if (target) lenis.scrollTo(target, { duration: 2 });
+      }
     });
+  });
+
+  // ── MAP INTERACTION (Unified 3D Tilt) ──
+  const mapCanvas = document.getElementById('map-canvas');
+
+  let mapMouseX = 0, mapMouseY = 0;
+  let mapCurX = 0, mapCurY = 0;
+
+  window.addEventListener('mousemove', (e) => {
+    mapMouseX = (e.clientX / innerWidth - 0.5) * 2;
+    mapMouseY = (e.clientY / innerHeight - 0.5) * 2;
+  });
+
+  gsap.ticker.add(() => {
+    if (!mapCanvas) return;
+    // Extra smooth lerp
+    mapCurX += (mapMouseX - mapCurX) * 0.04;
+    mapCurY += (mapMouseY - mapCurY) * 0.04;
+    
+    // Elegant 3D tilt (max 4 degrees)
+    const rotX = mapCurY * 4;
+    const rotY = -mapCurX * 4;
+    
+    mapCanvas.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
   });
 
   const book = new Book3D(document.getElementById('book-canvas'));
