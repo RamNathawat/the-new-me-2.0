@@ -120,142 +120,249 @@
       </div>
     </section>
 
-    <!-- ════════════ CHAPTER SHOWCASE — Cinematic Scroll Progression ════════════ -->
-    <section id="s-chapters" class="s s--chapters">
-      <div class="chapters__sticky">
+        <!-- ════════════ CHAPTER SHOWCASE — Compressed Map ════════════ -->
+    <section id="s-map" class="s s--map">
+      <div class="map__viewport" id="map-viewport" style="cursor: default;">
 
-        <!-- Persistent atmospheric layer -->
-        <div class="chapters__atmo" aria-hidden="true">
-          <div class="chapters__radial chapters__radial--1"></div>
-          <div class="chapters__radial chapters__radial--2"></div>
-          <div class="chapters__line chapters__line--1"></div>
-          <div class="chapters__line chapters__line--2"></div>
-          <div class="chapters__silhouette"></div>
+        
+
+        <!-- The draggable map canvas (3× viewport) -->
+        <div class="map__canvas" id="map-canvas">
+
+          <!-- Large SVG illustration background -->
+          <svg class="map__illustration" viewBox="0 0 3000 2000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <!-- Paths / roads -->
+            <path d="M400,900 C600,850 800,950 1000,900 C1200,850 1400,950 1500,1000 C1600,1050 1800,950 2000,1000 C2200,1050 2400,900 2600,950" fill="none" stroke="#c8d9d1" stroke-width="28" stroke-linecap="round" opacity="0.5"/>
+            <path d="M1500,200 C1500,400 1500,600 1500,1000 C1500,1200 1400,1400 1500,1700" fill="none" stroke="#c8d9d1" stroke-width="22" stroke-linecap="round" opacity="0.35"/>
+
+            <!-- Trees scattered -->
+            <g opacity="0.25" fill="#9AB5AC">
+              <circle cx="200" cy="300" r="25"/><circle cx="180" cy="280" r="20"/><circle cx="220" cy="285" r="18"/>
+              <rect x="195" y="320" width="8" height="20" fill="#8a7a6a" rx="2"/>
+
+              <circle cx="850" cy="200" r="20"/><circle cx="835" cy="185" r="16"/><circle cx="865" cy="188" r="14"/>
+              <rect x="845" y="215" width="7" height="16" fill="#8a7a6a" rx="2"/>
+
+              <circle cx="1800" cy="350" r="28"/><circle cx="1775" cy="330" r="22"/><circle cx="1825" cy="332" r="19"/>
+              <rect x="1793" y="375" width="9" height="22" fill="#8a7a6a" rx="2"/>
+
+              <circle cx="2500" cy="500" r="22"/><circle cx="2480" cy="482" r="18"/><circle cx="2518" cy="485" r="15"/>
+              <rect x="2494" y="518" width="8" height="18" fill="#8a7a6a" rx="2"/>
+
+              <circle cx="600" cy="1500" r="24"/><circle cx="580" cy="1480" r="19"/><circle cx="618" cy="1483" r="16"/>
+              <rect x="594" y="1520" width="8" height="20" fill="#8a7a6a" rx="2"/>
+
+              <circle cx="2300" cy="1600" r="26"/><circle cx="2278" cy="1580" r="21"/><circle cx="2320" cy="1582" r="17"/>
+              <rect x="2294" y="1622" width="8" height="20" fill="#8a7a6a" rx="2"/>
+            </g>
+
+            <!-- Garden area (top-left) - vegetable beds -->
+            <g transform="translate(150, 400)">
+              <rect x="0" y="0" width="120" height="40" rx="5" fill="#c8d9d1" opacity=".3"/>
+              <rect x="140" y="0" width="120" height="40" rx="5" fill="#b5c9c0" opacity=".3"/>
+              <rect x="0" y="55" width="120" height="40" rx="5" fill="#b5c9c0" opacity=".3"/>
+              <rect x="140" y="55" width="120" height="40" rx="5" fill="#c8d9d1" opacity=".3"/>
+              <!-- Little plant lines -->
+              <g stroke="#9AB5AC" stroke-width="2" opacity=".5">
+                <line x1="20" y1="15" x2="20" y2="35"/><line x1="40" y1="10" x2="40" y2="35"/>
+                <line x1="60" y1="12" x2="60" y2="35"/><line x1="80" y1="8" x2="80" y2="35"/>
+                <line x1="100" y1="14" x2="100" y2="35"/>
+                <line x1="160" y1="12" x2="160" y2="35"/><line x1="180" y1="8" x2="180" y2="35"/>
+                <line x1="200" y1="15" x2="200" y2="35"/><line x1="220" y1="10" x2="220" y2="35"/>
+              </g>
+            </g>
+
+            <!-- Fitness area (top-right) - running track -->
+            <g transform="translate(2100, 300)">
+              <ellipse cx="200" cy="100" rx="250" ry="80" fill="none" stroke="#c8d9d1" stroke-width="16" opacity=".3" stroke-dasharray="20 12"/>
+              <!-- Yoga mat -->
+              <rect x="100" y="220" width="60" height="30" rx="4" fill="#b5c9c0" opacity=".25" transform="rotate(-15 130 235)"/>
+              <!-- Weights -->
+              <rect x="320" y="200" width="40" height="8" rx="3" fill="#8a7a6a" opacity=".2"/>
+              <circle cx="320" cy="204" r="8" fill="none" stroke="#8a7a6a" stroke-width="2" opacity=".2"/>
+              <circle cx="360" cy="204" r="8" fill="none" stroke="#8a7a6a" stroke-width="2" opacity=".2"/>
+            </g>
+
+            <!-- Sleep area (bottom-left) - bed & moon -->
+            <g transform="translate(200, 1300)">
+              <!-- Room outline -->
+              <rect x="0" y="0" width="300" height="220" rx="8" fill="#e8e4dc" opacity=".15" stroke="#c8d9d1" stroke-width="2" opacity=".2"/>
+              <!-- Bed -->
+              <rect x="40" y="80" width="140" height="80" rx="6" fill="#b5c9c0" opacity=".15"/>
+              <rect x="40" y="70" width="50" height="20" rx="4" fill="#c8d9d1" opacity=".2"/>
+              <!-- Moon -->
+              <path d="M220,40 A30,30 0 1,1 220,100 A20,20 0 1,0 220,40" fill="#c8d9d1" opacity=".2"/>
+              <!-- Stars -->
+              <circle cx="250" cy="30" r="2" fill="#c8d9d1" opacity=".3"/>
+              <circle cx="270" cy="55" r="1.5" fill="#c8d9d1" opacity=".25"/>
+              <circle cx="200" cy="25" r="1.5" fill="#c8d9d1" opacity=".2"/>
+            </g>
+
+            <!-- Mindset area (bottom-right) - books & brain -->
+            <g transform="translate(2200, 1300)">
+              <!-- Bookshelf -->
+              <rect x="0" y="0" width="200" height="250" rx="4" fill="none" stroke="#c8d9d1" stroke-width="2" opacity=".2"/>
+              <rect x="10" y="10" width="15" height="100" rx="2" fill="#b5c9c0" opacity=".15"/>
+              <rect x="30" y="20" width="12" height="90" rx="2" fill="#c8d9d1" opacity=".15"/>
+              <rect x="48" y="15" width="15" height="95" rx="2" fill="#9AB5AC" opacity=".12"/>
+              <rect x="68" y="25" width="12" height="85" rx="2" fill="#b5c9c0" opacity=".15"/>
+              <!-- Brain icon -->
+              <circle cx="400" cy="80" r="50" fill="none" stroke="#c8d9d1" stroke-width="2" opacity=".2"/>
+              <path d="M375,80 C375,60 390,50 400,50 C410,50 425,60 425,80 C425,100 410,110 400,110 C390,110 375,100 375,80" fill="none" stroke="#9AB5AC" stroke-width="1.5" opacity=".25"/>
+              <path d="M400,50 L400,110 M380,70 L420,90 M380,90 L420,70" stroke="#9AB5AC" stroke-width="1" opacity=".15"/>
+            </g>
+
+            <!-- Small figures walking -->
+            <g fill="#8a7a6a" opacity=".15">
+              <circle cx="900" cy="870" r="5"/><rect x="897" y="876" width="6" height="14" rx="2"/>
+              <circle cx="1600" cy="970" r="5"/><rect x="1597" y="976" width="6" height="14" rx="2"/>
+              <circle cx="1200" cy="1100" r="5"/><rect x="1197" y="1106" width="6" height="14" rx="2"/>
+              <circle cx="700" cy="1200" r="4"/><rect x="697" y="1206" width="6" height="12" rx="2"/>
+              <circle cx="2000" cy="1200" r="5"/><rect x="1997" y="1206" width="6" height="14" rx="2"/>
+            </g>
+
+            <!-- Clouds -->
+            <g fill="#e8e4dc" opacity=".15">
+              <ellipse cx="500" cy="100" rx="80" ry="25"/><ellipse cx="480" cy="90" rx="50" ry="20"/>
+              <ellipse cx="1900" cy="120" rx="70" ry="22"/><ellipse cx="1920" cy="110" rx="45" ry="18"/>
+              <ellipse cx="2700" cy="180" rx="60" ry="20"/>
+              <ellipse cx="1100" cy="60" rx="55" ry="18"/><ellipse cx="1120" cy="52" rx="35" ry="14"/>
+              <ellipse cx="400" cy="1700" rx="65" ry="20"/>
+            </g>
+            <!-- Birds -->
+            <g stroke="#8a7a6a" stroke-width="1.5" fill="none" opacity=".12">
+              <path d="M700,150 Q710,140 720,150 Q730,140 740,150"/>
+              <path d="M2200,200 Q2210,190 2220,200 Q2230,190 2240,200"/>
+              <path d="M1300,80 Q1310,70 1320,80"/>
+              <path d="M500,600 Q510,590 520,600 Q530,590 540,600"/>
+              <path d="M2600,700 Q2610,690 2620,700"/>
+            </g>
+            <!-- Extra roads -->
+            <path d="M200,700 C400,680 600,750 800,700 C1000,650 1100,700 1300,750" fill="none" stroke="#c8d9d1" stroke-width="18" stroke-linecap="round" opacity=".3"/>
+            <path d="M1800,600 C1900,700 2000,800 2100,900 C2200,1000 2300,1100 2500,1200" fill="none" stroke="#c8d9d1" stroke-width="16" stroke-linecap="round" opacity=".25"/>
+            <path d="M800,1300 C900,1250 1100,1350 1300,1300 C1500,1250 1700,1350 1900,1300" fill="none" stroke="#c8d9d1" stroke-width="14" stroke-linecap="round" opacity=".2"/>
+            <!-- More trees -->
+            <g opacity=".2" fill="#9AB5AC">
+              <circle cx="1000" cy="500" r="22"/><circle cx="985" cy="482" r="17"/><circle cx="1015" cy="486" r="15"/>
+              <circle cx="1400" cy="700" r="18"/><circle cx="1385" cy="686" r="14"/>
+              <circle cx="500" cy="1100" r="20"/><circle cx="520" cy="1088" r="16"/>
+              <circle cx="1700" cy="1500" r="24"/><circle cx="1680" cy="1480" r="19"/><circle cx="1718" cy="1484" r="16"/>
+              <circle cx="2700" cy="1100" r="20"/><circle cx="2680" cy="1085" r="16"/><circle cx="2715" cy="1088" r="14"/>
+              <circle cx="400" cy="850" r="16"/><circle cx="385" cy="838" r="12"/>
+              <circle cx="2100" cy="1600" r="22"/><circle cx="2085" cy="1582" r="17"/>
+              <circle cx="1200" cy="400" r="15"/><circle cx="1185" cy="388" r="12"/>
+              <circle cx="2400" cy="350" r="19"/><circle cx="2385" cy="335" r="15"/>
+            </g>
+            <!-- Market stall -->
+            <g transform="translate(700,600)" opacity=".22">
+              <rect x="0" y="20" width="80" height="50" rx="3" fill="#c8d9d1"/><path d="M-5,20 L40,0 L85,20" fill="none" stroke="#8a7a6a" stroke-width="2"/>
+              <rect x="10" y="30" width="12" height="12" rx="2" fill="#b5c9c0"/><rect x="28" y="32" width="10" height="10" rx="2" fill="#9AB5AC"/><rect x="44" y="30" width="14" height="12" rx="2" fill="#b5c9c0"/>
+            </g>
+            <!-- Second market -->
+            <g transform="translate(1900,1100)" opacity=".18">
+              <rect x="0" y="15" width="70" height="45" rx="3" fill="#e8e4dc"/><path d="M-3,15 L35,0 L73,15" fill="none" stroke="#8a7a6a" stroke-width="1.5"/>
+              <circle cx="18" cy="32" r="6" fill="#c8d9d1"/><circle cx="38" cy="34" r="5" fill="#b5c9c0"/><circle cx="55" cy="32" r="6" fill="#c8d9d1"/>
+            </g>
+            <!-- Hot air balloon -->
+            <g transform="translate(2600,100)" opacity=".2">
+              <ellipse cx="0" cy="0" rx="45" ry="55" fill="none" stroke="#c8d9d1" stroke-width="2"/><path d="M-20,50 L-15,80 L15,80 L20,50" fill="none" stroke="#8a7a6a" stroke-width="1.5"/>
+              <rect x="-12" y="80" width="24" height="16" rx="3" fill="none" stroke="#8a7a6a" stroke-width="1.5"/>
+            </g>
+            <!-- Benches -->
+            <g fill="none" stroke="#8a7a6a" stroke-width="1.5" opacity=".15">
+              <path d="M1050,950 h30 M1050,955 v8 M1080,955 v8"/><path d="M1650,1200 h30 M1650,1205 v8 M1680,1205 v8"/>
+              <path d="M350,1100 h25 M350,1105 v7 M375,1105 v7"/><path d="M2350,800 h28 M2350,805 v8 M2378,805 v8"/>
+            </g>
+            <!-- Fences -->
+            <g stroke="#c8d9d1" stroke-width="1.5" opacity=".15">
+              <path d="M600,480 v-15 m10,15 v-15 m10,15 v-15 m10,15 v-15 M600,475 h40"/>
+              <path d="M2000,500 v-12 m8,12 v-12 m8,12 v-12 m8,12 v-12 M2000,496 h32"/>
+            </g>
+            <!-- Pond -->
+            <ellipse cx="1100" cy="1400" rx="80" ry="35" fill="#c8d9d1" opacity=".08" stroke="#9AB5AC" stroke-width="1.5" opacity=".12"/>
+            <!-- Signposts -->
+            <g stroke="#8a7a6a" stroke-width="2" opacity=".15">
+              <line x1="900" y1="800" x2="900" y2="830"/><rect x="885" y="795" width="35" height="10" rx="2" fill="#e8e4dc"/>
+              <line x1="2000" y1="700" x2="2000" y2="730"/><rect x="1985" y="695" width="35" height="10" rx="2" fill="#e8e4dc"/>
+            </g>
+            <!-- More walking figures -->
+            <g fill="#8a7a6a" opacity=".12">
+              <circle cx="450" cy="680" r="4"/><rect x="447" y="685" width="5" height="11" rx="2"/>
+              <circle cx="1350" cy="730" r="4"/><rect x="1347" y="735" width="5" height="11" rx="2"/>
+              <circle cx="1950" cy="950" r="4"/><rect x="1947" y="955" width="5" height="11" rx="2"/>
+              <circle cx="800" cy="1350" r="4"/><rect x="797" y="1355" width="5" height="11" rx="2"/>
+              <circle cx="2500" cy="1300" r="4"/><rect x="2497" y="1305" width="5" height="11" rx="2"/>
+              <circle cx="1500" cy="1500" r="4"/><rect x="1497" y="1505" width="5" height="11" rx="2"/>
+              <circle cx="300" cy="550" r="3.5"/><rect x="297" y="555" width="5" height="10" rx="2"/>
+              <circle cx="2200" cy="500" r="4"/><rect x="2197" y="505" width="5" height="12" rx="2"/>
+            </g>
+            <!-- Stepping stones -->
+            <g fill="#c8d9d1" opacity=".12">
+              <circle cx="1300" cy="1000" r="5"/><circle cx="1320" cy="1010" r="4"/><circle cx="1340" cy="1005" r="5"/>
+              <circle cx="800" cy="900" r="4"/><circle cx="818" cy="908" r="4"/><circle cx="836" cy="904" r="4"/>
+            </g>
+          </svg>
+
+          <!-- Chapter hotspots — scattered organically -->
+          <button class="map__ch" data-ch="0" style="left:8%; top:22%;" id="ch-nutrition">
+            <span class="map__ch-pre">CH.</span>
+            <span class="map__ch-name">ONE</span>
+            <span class="map__ch-title">Nutrition</span>
+            <span class="map__ch-preview">Building the foundation of intentionality and discipline.</span>
+          </button>
+
+          <button class="map__ch" data-ch="1" style="left:62%; top:10%;" id="ch-fitness">
+            <span class="map__ch-pre">CH.</span>
+            <span class="map__ch-name">TWO</span>
+            <span class="map__ch-title">Fitness</span>
+            <span class="map__ch-preview">Harnessing physical movement to alter cognition.</span>
+          </button>
+
+          <button class="map__ch" data-ch="2" style="left:28%; top:68%;" id="ch-sleep">
+            <span class="map__ch-pre">CH.</span>
+            <span class="map__ch-name">THREE</span>
+            <span class="map__ch-title">Sleep</span>
+            <span class="map__ch-preview">Strategic recovery as a performance multiplier.</span>
+          </button>
+
+          <button class="map__ch" data-ch="3" style="left:72%; top:58%;" id="ch-mindset">
+            <span class="map__ch-pre">CH.</span>
+            <span class="map__ch-name">FOUR</span>
+            <span class="map__ch-title">Mindset</span>
+            <span class="map__ch-preview">Calibrating your inner narrative for growth.</span>
+          </button>
+
         </div>
 
-        <!-- ── UNIFIED VERTICAL NAVIGATION ── -->
-        <nav class="ch-nav">
-          <ul class="ch-nav__list">
-            <li><button class="ch-nav__item active" data-ch-nav="0"><span class="num">01</span> Nutrition</button></li>
-            <li><button class="ch-nav__item" data-ch-nav="1"><span class="num">02</span> Fitness</button></li>
-            <li><button class="ch-nav__item" data-ch-nav="2"><span class="num">03</span> Sleep</button></li>
-            <li><button class="ch-nav__item" data-ch-nav="3"><span class="num">04</span> Mindset</button></li>
-          </ul>
-        </nav>
-
-        <!-- Intro (fades out as first scene enters) -->
-        <div class="ch-intro" id="ch-intro">
-          <span class="label">THE FOUR PILLARS</span>
-          <h2 class="ch-intro__title">Inside the Book</h2>
-        </div>
-
-        <!-- ── SCENE 1: Nutrition (left-heavy, organic) ── -->
-        <div class="ch-scene" id="ch-scene-1" data-ch="0">
-          <div class="ch-env">
-            <div class="ch-env__type ch-env__type--1">NOURISH</div>
-            <div class="ch-env__quote ch-env__quote--1">"Food is the most profound medicine."</div>
-            <div class="ch-env__num ch-env__num--1">01</div>
-            <div class="ch-env__shape ch-env__shape--1"></div>
-            <div class="ch-env__line ch-env__line--1"></div>
+        <!-- Detail Card (slides up from bottom like reference) -->
+        <div class="map__card" id="map-card">
+          <button class="map__card-close" id="map-card-close" aria-label="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <div class="map__card-inner" id="map-card-inner">
+            <span class="map__card-ch" id="card-ch"></span>
+            <h3 class="map__card-title" id="card-title"></h3>
+            <div class="map__card-rule"></div>
+            <p class="map__card-subtitle" id="card-subtitle"></p>
+            <div class="map__card-body" id="card-body"></div>
           </div>
-          <div class="ch-scene__dominant ch-scene__dominant--left">
-            <span class="ch-scene__label">Chapter One</span>
-            <h3 class="ch-scene__title">Nutrition</h3>
-            <p class="ch-scene__subtitle">Plant-based fuel for lasting recovery</p>
-            <div class="ch-scene__preview">
-              <p>Gagan's transformation began in the kitchen — not with a fad diet, but with a fundamental rethinking of what food is for.</p>
-            </div>
-            <span class="ch-scene__cta" data-ch-open="0">Read Chapter →</span>
+          <div class="map__card-nav">
+            <button class="map__card-prev" id="card-prev">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              PREV
+            </button>
+            <button class="map__card-next" id="card-next">
+              NEXT
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
           </div>
         </div>
 
-        <!-- ── SCENE 2: Fitness (right-heavy, sharp/directional) ── -->
-        <div class="ch-scene" id="ch-scene-2" data-ch="1">
-          <div class="ch-env">
-            <div class="ch-env__type ch-env__type--2">KINETIC</div>
-            <div class="ch-env__quote ch-env__quote--2">"Movement is not optional."</div>
-            <div class="ch-env__num ch-env__num--2">02</div>
-            <div class="ch-env__shape ch-env__shape--2"></div>
-            <div class="ch-env__line ch-env__line--2"></div>
-          </div>
-          <div class="ch-scene__dominant ch-scene__dominant--right">
-            <span class="ch-scene__label">Chapter Two</span>
-            <h3 class="ch-scene__title">Fitness</h3>
-            <p class="ch-scene__subtitle">Movement as daily medicine</p>
-            <div class="ch-scene__preview">
-              <p>Movement is not optional — it is medicine. He trained to stay alive, not to look good.</p>
-            </div>
-            <span class="ch-scene__cta" data-ch-open="1">Read Chapter →</span>
-          </div>
-        </div>
-
-        <!-- ── SCENE 3: Sleep (centered, quiet, soft) ── -->
-        <div class="ch-scene" id="ch-scene-3" data-ch="2">
-          <div class="ch-env">
-            <div class="ch-env__type ch-env__type--3">RESTORE</div>
-            <div class="ch-env__quote ch-env__quote--3">"Healing requires silence."</div>
-            <div class="ch-env__num ch-env__num--3">03</div>
-            <div class="ch-env__shape ch-env__shape--3"></div>
-            <div class="ch-env__line ch-env__line--3"></div>
-          </div>
-          <div class="ch-scene__dominant ch-scene__dominant--left" style="margin-left: 15vw;">
-            <span class="ch-scene__label">Chapter Three</span>
-            <h3 class="ch-scene__title">Sleep</h3>
-            <p class="ch-scene__subtitle">The overlooked recovery pillar</p>
-            <div class="ch-scene__preview">
-              <p>The most overlooked pillar of health is the one we spend a third of our lives doing badly.</p>
-            </div>
-            <span class="ch-scene__cta" data-ch-open="2">Read Chapter →</span>
-          </div>
-        </div>
-
-        <!-- ── SCENE 4: Mindset (right-heavy, strong structure) ── -->
-        <div class="ch-scene" id="ch-scene-4" data-ch="3">
-          <div class="ch-env">
-            <div class="ch-env__type ch-env__type--4">RESOLVE</div>
-            <div class="ch-env__quote ch-env__quote--4">"What you repeat becomes who you are."</div>
-            <div class="ch-env__num ch-env__num--4">04</div>
-            <div class="ch-env__shape ch-env__shape--4"></div>
-            <div class="ch-env__line ch-env__line--4"></div>
-          </div>
-          <div class="ch-scene__dominant ch-scene__dominant--right" style="margin-right: 10vw;">
-            <span class="ch-scene__label">Chapter Four</span>
-            <h3 class="ch-scene__title">Mindset</h3>
-            <p class="ch-scene__subtitle">Discipline, purpose &amp; resilience</p>
-            <div class="ch-scene__preview">
-              <p>Every lasting transformation began with a decision, not a discovery.</p>
-            </div>
-            <span class="ch-scene__cta" data-ch-open="3">Read Chapter →</span>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Detail Sheet Overlay -->
-      <div class="ch-sheet-overlay" id="ch-sheet-overlay"></div>
-
-      <!-- Detail Sheet -->
-      <div class="ch-sheet" id="ch-sheet">
-        <button class="ch-sheet__close" id="ch-sheet-close" aria-label="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <!-- Close button (floating, top right like reference) -->
+        <button class="map__close-float" id="map-close-float" style="display:none;" aria-label="Close">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <div class="ch-sheet__inner" id="ch-sheet-inner">
-          <span class="ch-sheet__ch" id="sheet-ch"></span>
-          <h3 class="ch-sheet__title" id="sheet-title"></h3>
-          <div class="ch-sheet__rule"></div>
-          <p class="ch-sheet__subtitle" id="sheet-subtitle"></p>
-          <div class="ch-sheet__body" id="sheet-body"></div>
-        </div>
-        <div class="ch-sheet__nav">
-          <button class="ch-sheet__prev" id="sheet-prev">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-            PREV
-          </button>
-          <button class="ch-sheet__next" id="sheet-next">
-            NEXT
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
-          </button>
-        </div>
+
       </div>
     </section>
 

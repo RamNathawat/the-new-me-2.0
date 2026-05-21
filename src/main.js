@@ -1,3 +1,26 @@
+
+const chaptersData = [
+  {
+    title: "The Seed of Discipline",
+    subtitle: "Building the foundation of intentionality.",
+    body: "<p>Before any lasting change can occur, there must be a mechanism for consistency. This chapter explores the neurology of habit formation and the psychological resistance we face when establishing new routines.</p><p>We dismantle the myth of motivation, replacing it with the mechanics of discipline: small, compounding actions that rewire the brain's reward pathways over time.</p>"
+  },
+  {
+    title: "Kinetic Potential",
+    subtitle: "Harnessing movement to alter cognition.",
+    body: "<p>Movement is not just a physical requirement; it is a cognitive catalyst. This chapter examines how varying states of physical exertion influence our mental clarity, emotional resilience, and creative output.</p><p>You will learn to treat physical training not as a chore, but as a lever to manipulate your mental state.</p>"
+  },
+  {
+    title: "The Art of Rest",
+    subtitle: "Strategic recovery as a performance multiplier.",
+    body: "<p>In a culture obsessed with optimization, rest is often viewed as a weakness. Here, we reframe recovery as the essential counterweight to effort.</p><p>We dive into the architecture of sleep, the importance of parasympathetic activation, and how to structure downtime to maximize physical adaptation and cognitive consolidation.</p>"
+  },
+  {
+    title: "Cognitive Alignment",
+    subtitle: "Calibrating your inner narrative.",
+    body: "<p>The final frontier is the mind itself. Even with perfect discipline and optimal recovery, a misaligned internal narrative will sabotage progress.</p><p>This section provides tools for identifying cognitive distortions, cultivating a growth-oriented mindset, and aligning your daily actions with your overarching sense of purpose.</p>"
+  }
+];
 /* ═══════════════════════════════════════════════════
    THE NEW ME 2.0 — Main entry
    Three.js + GSAP + Lenis
@@ -56,6 +79,11 @@ const POSE = {
     rx: -0.04, ry: -0.15, rz: 0.03,
     sc: 0.75,
   },
+  sideRight: {
+    x: 0.85, y: 0.05, z: 0,
+    rx: -0.04, ry: 0.15, rz: -0.03,
+    sc: 0.75,
+  },
   fill: {
     x: 0, y: 0, z: 1.8,
     rx: 0, ry: 0, rz: 0,
@@ -76,6 +104,7 @@ class Book3D {
     this.toSide = 0;
     this.toFill = 0;
     this.toAuthor = 0;
+    this.toSideRight = 0;
     this.canvasFade = 1;
 
     this.mouse = { x: 0, y: 0 };
@@ -154,12 +183,13 @@ class Book3D {
     if (!this.pivot) { this.r.render(this.scene, this.cam); return; }
     const t = this.clk.getElapsedTime();
 
-    this.mouseSmooth.x = lerp(this.mouseSmooth.x, this.mouse.x, 0.04);
-    this.mouseSmooth.y = lerp(this.mouseSmooth.y, this.mouse.y, 0.04);
+    this.mouseSmooth.x = lerp(this.mouseSmooth.x, this.mouse.x, 0.07);
+    this.mouseSmooth.y = lerp(this.mouseSmooth.y, this.mouse.y, 0.07);
 
-    // Pose interpolation: hero → side → fill → side(author)
+    // Pose interpolation: hero → side → sideRight → fill → side(author)
     const atSide = lerpPose(POSE.hero, POSE.side, this.toSide);
-    const atFill = lerpPose(atSide, POSE.fill, this.toFill);
+    const atSideRight = lerpPose(atSide, POSE.sideRight, this.toSideRight);
+    const atFill = lerpPose(atSideRight, POSE.fill, this.toFill);
     let target = lerpPose(atFill, POSE.side, this.toAuthor);
 
     // Breathing
@@ -174,10 +204,10 @@ class Book3D {
     // Cursor
     const mx = this.mouseSmooth.x, my = this.mouseSmooth.y;
     const hs = Math.max(0.1, 1 - this.toSide * 0.6 - fillAmt * 0.8);
-    target.ry += mx * 0.08 * hs;
-    target.rx += my * 0.04 * hs;
-    target.x += mx * 0.04 * hs;
-    target.y += my * -0.02 * hs;
+    target.ry += mx * 0.16 * hs;
+    target.rx += my * 0.08 * hs;
+    target.x += mx * 0.08 * hs;
+    target.y += my * -0.04 * hs;
 
     // LERP
     const spd = 0.08;
@@ -256,172 +286,73 @@ const CHAPTERS = [
 let currentCh = -1;
 let sheetOpen = false;
 
-function initChapters() {
-  const sheet = document.getElementById('ch-sheet');
-  const chEl = document.getElementById('sheet-ch');
-  const titleEl = document.getElementById('sheet-title');
-  const subEl = document.getElementById('sheet-subtitle');
-  const bodyEl = document.getElementById('sheet-body');
-  const closeBtn = document.getElementById('ch-sheet-close');
-  const prevBtn = document.getElementById('sheet-prev');
-  const nextBtn = document.getElementById('sheet-next');
-
-  function openChapter(idx) {
-    idx = ((idx % CHAPTERS.length) + CHAPTERS.length) % CHAPTERS.length;
-    currentCh = idx;
-    const c = CHAPTERS[idx];
-    chEl.textContent = c.ch;
-    titleEl.textContent = c.title;
-    subEl.textContent = c.subtitle;
-    bodyEl.innerHTML = c.body;
-    if (!sheetOpen) { sheet.classList.add('open'); sheetOpen = true; }
-  }
-
-  function closeSheet() {
-    sheet.classList.remove('open');
-    sheetOpen = false;
-    currentCh = -1;
-  }
-
-  // Clicks on dominant panels and CTAs
-  document.querySelectorAll('[data-ch-open]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openChapter(parseInt(el.dataset.chOpen));
-    });
-  });
-
-  // Dominant panel clicks
-  document.querySelectorAll('.ch-scene__dominant').forEach(dom => {
-    dom.addEventListener('click', () => {
-      const scene = dom.closest('.ch-scene');
-      if (scene) openChapter(parseInt(scene.dataset.ch));
-    });
-  });
-
-  closeBtn.addEventListener('click', closeSheet);
-  prevBtn.addEventListener('click', () => { if (currentCh >= 0) openChapter(currentCh - 1); });
-  nextBtn.addEventListener('click', () => { if (currentCh >= 0) openChapter(currentCh + 1); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheetOpen) closeSheet(); });
-}
 
 /* ═══════════════════════════════════════════════════
    CHAPTER SCENE CONTROLLER
    Scroll-driven cinematic progression
    ═══════════════════════════════════════════════════ */
-function initChapterScenes() {
-  const scenes = [
-    document.getElementById('ch-scene-1'),
-    document.getElementById('ch-scene-2'),
-    document.getElementById('ch-scene-3'),
-    document.getElementById('ch-scene-4'),
-  ];
-  const navItems = document.querySelectorAll('.ch-nav__item');
-  const intro = document.getElementById('ch-intro');
-  let activeScene = -1;
-  let introVisible = false;
 
-  function setScene(idx) {
-    if (idx === activeScene) return;
-    activeScene = idx;
+function initChapterMap() {
+  const chapters = document.querySelectorAll('.map__ch');
+  const card = document.getElementById('map-card');
+  const closeBtn = document.getElementById('map-card-close');
+  const closeFloat = document.getElementById('map-close-float');
+  const prevBtn = document.getElementById('card-prev');
+  const nextBtn = document.getElementById('card-next');
+  
+  const mcCh = document.getElementById('card-ch');
+  const mcTitle = document.getElementById('card-title');
+  const mcSub = document.getElementById('card-subtitle');
+  const mcBody = document.getElementById('card-body');
+  
+  let currentCh = -1;
+  let cardOpen = false;
 
-    // Update unified nav
-    navItems.forEach((btn, i) => {
-      if (i === idx) btn.classList.add('active');
-      else btn.classList.remove('active');
-    });
+  function openChapter(idx) {
+    if (idx < 0 || idx >= chaptersData.length) return;
+    currentCh = idx;
+    cardOpen = true;
 
-    // Transition scenes
-    scenes.forEach((scene, i) => {
-      if (i === idx) {
-        scene.classList.add('active');
-        const dom = scene.querySelector('.ch-scene__dominant');
-        const env = scene.querySelector('.ch-env');
-        
-        gsap.killTweensOf(dom);
-        gsap.fromTo(dom,
-          { opacity: 0, y: 30, scale: 0.97 },
-          { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: 'power3.out' }
-        );
-        
-        if (env) {
-          gsap.killTweensOf(env);
-          gsap.fromTo(env,
-            { opacity: 0, scale: 0.98 },
-            { opacity: 1, scale: 1, duration: 2, ease: 'power2.out' }
-          );
-        }
-      } else if (scene.classList.contains('active')) {
-        const dom = scene.querySelector('.ch-scene__dominant');
-        const env = scene.querySelector('.ch-env');
-        
-        gsap.killTweensOf(dom);
-        gsap.to(dom, {
-          opacity: 0, y: -20, duration: 0.6, ease: 'power2.in',
-          onComplete: () => { scene.classList.remove('active'); }
-        });
-        
-        if (env) {
-          gsap.killTweensOf(env);
-          gsap.to(env, { opacity: 0, duration: 0.8, ease: 'power2.out' });
-        }
-      }
-    });
+    const data = chaptersData[idx];
+    mcCh.textContent = `CHAPTER 0${idx + 1}`;
+    mcTitle.innerHTML = data.title;
+    mcSub.textContent = data.subtitle;
+    mcBody.innerHTML = data.body;
+
+    card.classList.add('open');
+    closeFloat.style.display = 'flex';
   }
 
-  function clearAll() {
-    if (activeScene === -1) return;
-    activeScene = -1;
-    navItems.forEach(btn => btn.classList.remove('active'));
-    scenes.forEach(s => {
-      s.classList.remove('active');
-      const dom = s.querySelector('.ch-scene__dominant');
-      const env = s.querySelector('.ch-env');
-      gsap.set(dom, { opacity: 0, y: 0 });
-      if (env) gsap.set(env, { opacity: 0 });
-    });
+  function closeChapter() {
+    cardOpen = false;
+    card.classList.remove('open');
+    closeFloat.style.display = 'none';
   }
 
-  const section = document.getElementById('s-chapters');
+  chapters.forEach((chBtn) => {
+    chBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(chBtn.getAttribute('data-ch'), 10);
+      openChapter(idx);
+    });
+  });
 
-  // Single master ScrollTrigger — progress drives everything
-  ScrollTrigger.create({
-    trigger: section,
-    start: 'top top',
-    end: 'bottom bottom',
-    scrub: 0,
-    onUpdate: (self) => {
-      const p = self.progress;
+  closeBtn.addEventListener('click', closeChapter);
+  closeFloat.addEventListener('click', closeChapter);
+  
+  prevBtn.addEventListener('click', () => {
+    if (currentCh > 0) openChapter(currentCh - 1);
+  });
+  nextBtn.addEventListener('click', () => {
+    if (currentCh < chaptersData.length - 1) openChapter(currentCh + 1);
+  });
 
-      // ── INTRO: fade in at 3-7%, visible 7-12%, fade out 12-16% ──
-      if (p > 0.03 && p <= 0.07) {
-        const t = (p - 0.03) / 0.04;
-        gsap.set(intro, { opacity: t, scale: 0.98 + t * 0.02 });
-      } else if (p > 0.07 && p <= 0.12) {
-        gsap.set(intro, { opacity: 1, scale: 1 });
-      } else if (p > 0.12 && p < 0.16) {
-        const t = (p - 0.12) / 0.04;
-        gsap.set(intro, { opacity: 1 - t, scale: 1 + t * 0.03 });
-      } else {
-        gsap.set(intro, { opacity: 0 });
-      }
-
-      // ── SCENES: each gets ~18% of progress ──
-      // Scene 1: 16-34%  Scene 2: 34-52%  Scene 3: 52-70%  Scene 4: 70-88%
-      let targetScene = -1;
-      if (p >= 0.16 && p < 0.34) targetScene = 0;
-      else if (p >= 0.34 && p < 0.52) targetScene = 1;
-      else if (p >= 0.52 && p < 0.70) targetScene = 2;
-      else if (p >= 0.70 && p < 0.92) targetScene = 3;
-
-      if (targetScene !== -1 && targetScene !== activeScene) {
-        setScene(targetScene);
-      } else if (targetScene === -1 && activeScene !== -1 && p < 0.16) {
-        clearAll();
-      }
-    }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && cardOpen) closeChapter();
   });
 }
+
+
 
 /* ═══════════════════════════════════════════════════
    SCROLL CHOREOGRAPHY
@@ -457,6 +388,19 @@ function choreograph(book) {
   });
 
   // BG: Sage → Cream
+  
+  // ━━━━ CANVAS SCROLLS AWAY WITH FOOTER ━━━━
+  ScrollTrigger.create({
+    trigger: '.site-footer', 
+    start: 'top bottom', 
+    end: 'bottom top', 
+    scrub: true,
+    animation: gsap.fromTo('#book-canvas', 
+      { y: 0 }, 
+      { y: () => -document.querySelector('.site-footer').offsetHeight - window.innerHeight, ease: 'none' }
+    )
+  });
+
   g.to('body', {
     backgroundColor: '#F5F2EA',
     scrollTrigger: { trigger: '#s-hero', start: '60% top', end: '85% top', scrub: 2 }
@@ -468,6 +412,14 @@ function choreograph(book) {
     scrub: 1.8,
     onUpdate: (s) => { book.toSide = s.progress; }
   });
+
+  // Book: Side (Left) → SideRight (Right)
+  ScrollTrigger.create({
+    trigger: '#s-story-2', start: 'top 85%', end: 'top 25%',
+    scrub: 1.8,
+    onUpdate: (s) => { book.toSideRight = s.progress; }
+  });
+
 
   // ━━━━ STORY PANELS ━━━━
   g.fromTo('#s1-panel-a', { opacity: 0, y: 30 }, {
@@ -504,26 +456,40 @@ function choreograph(book) {
 
   // ━━━━ BOOK ZOOM — completes BEFORE chapters section reaches top ━━━━
   ScrollTrigger.create({
-    trigger: '#s-chapters', start: 'top 100%', end: 'top 30%',
+    trigger: '#s-map', start: 'top 100%', end: 'top 30%',
     scrub: 2,
     onUpdate: (s) => { book.toFill = s.progress; }
   });
 
   // Book fades AFTER zoom completes, before intro appears
   ScrollTrigger.create({
-    trigger: '#s-chapters', start: 'top 20%', end: 'top top',
+    trigger: '#s-map', start: 'top 20%', end: 'top top',
     scrub: 1.5,
     onUpdate: (s) => { book.canvasFade = 1 - s.progress; }
   });
 
   // BG to warm for chapters
-  g.to('body', {
-    backgroundColor: '#EDE8DE',
-    scrollTrigger: { trigger: '#s-chapters', start: 'top 50%', end: 'top top', scrub: 2 }
+  
+  // ━━━━ CANVAS SCROLLS AWAY WITH FOOTER ━━━━
+  ScrollTrigger.create({
+    trigger: '.site-footer', 
+    start: 'top bottom', 
+    end: 'bottom top', 
+    scrub: true,
+    animation: gsap.fromTo('#book-canvas', 
+      { y: 0 }, 
+      { y: () => -document.querySelector('.site-footer').offsetHeight - window.innerHeight, ease: 'none' }
+    )
   });
 
+  g.to('body', {
+    backgroundColor: '#EDE8DE',
+    scrollTrigger: { trigger: '#s-map', start: 'top 50%', end: 'top top', scrub: 2 }
+  });
+
+
   // ━━━━ CHAPTER SCENES (handled by initChapterScenes) ━━━━
-  initChapterScenes();
+  initChapterMap();
 
   // ━━━━ CANVAS RETURNS for Author ━━━━
   ScrollTrigger.create({
@@ -533,6 +499,19 @@ function choreograph(book) {
       book.canvasFade = s.progress;
       book.toAuthor = s.progress;
     }
+  });
+
+  
+  // ━━━━ CANVAS SCROLLS AWAY WITH FOOTER ━━━━
+  ScrollTrigger.create({
+    trigger: '.site-footer', 
+    start: 'top bottom', 
+    end: 'bottom top', 
+    scrub: true,
+    animation: gsap.fromTo('#book-canvas', 
+      { y: 0 }, 
+      { y: () => -document.querySelector('.site-footer').offsetHeight - window.innerHeight, ease: 'none' }
+    )
   });
 
   g.to('body', {
@@ -554,7 +533,6 @@ function choreograph(book) {
 /* ─── Boot ────────────────────────────────────── */
 function boot() {
   spawnParticles();
-  initChapters();
 
   const lenis = new Lenis({
     duration: 1.4,
