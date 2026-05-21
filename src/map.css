@@ -7,7 +7,7 @@
   position: relative;
   z-index: 20;
   height: 100vh;
-  background: var(--cream);
+  background: transparent;
   overflow: hidden;
 }
 

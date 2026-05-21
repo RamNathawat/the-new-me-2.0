@@ -461,6 +461,12 @@ function choreograph(book) {
     onUpdate: (s) => { book.toFill = s.progress; }
   });
 
+  // Map fades in only AFTER zoom is near completion
+  g.fromTo('#map-viewport', 
+    { opacity: 0 },
+    { opacity: 1, scrollTrigger: { trigger: '#s-map', start: 'top 35%', end: 'top 5%', scrub: 1.5 } }
+  );
+
   // Book fades AFTER zoom completes, before intro appears
   ScrollTrigger.create({
     trigger: '#s-map', start: 'top 20%', end: 'top top',
