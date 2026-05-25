@@ -4,17 +4,18 @@
    ═══════════════════════════════════════════════════ */
 
 :root {
-  --sage: #B5C9C0;
-  --sage-deep: #9AB5AC;
-  --sage-light: #c8d9d1;
-  --cream: #F5F2EA;
-  --warm: #EDE8DE;
-  --dark: #1E1E1E;
+  --sage: #F9F9F9; /* Paper White */
+  --sage-deep: #2D5A27; /* Vitality Green */
+  --sage-light: #C5D86D; /* Avocado Lime */
+  --cream: #F9F9F9;
+  --warm: #F9F9F9;
+  --dark: #1A1A1A;
   --muted: #8A9690;
-  --white: #FAFAF7;
+  --white: #FFFFFF;
+  --accent-red: #E84D31; /* Tomato Red */
 
-  --ff: 'DM Sans', system-ui, -apple-system, sans-serif;
-  --fe: 'Playfair Display', Georgia, serif;
+  --ff: 'Montserrat', 'Inter', system-ui, -apple-system, sans-serif;
+  --fe: 'EB Garamond', 'Playfair Display', Georgia, serif;
 
   --ease: cubic-bezier(0.19, 1, 0.22, 1);
   --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -243,8 +244,8 @@ a { color:inherit; text-decoration:none; }
   font-size: clamp(6rem, 14vw, 16rem);
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--white);
-  opacity: 0.05;
+  color: var(--sage-deep);
+  opacity: 0.08;
   display: inline-block;
   letter-spacing: -0.04em;
 }
@@ -333,7 +334,7 @@ a { color:inherit; text-decoration:none; }
 .s--story {
   position: relative;
   z-index: 5;
-  background: var(--cream);
+  background: transparent;
 }
 
 .s--story-pinned {
@@ -386,8 +387,7 @@ a { color:inherit; text-decoration:none; }
   gap: 1.2rem;
 }
 .story__panel--b {
-  opacity: 0;
-  transform: translateY(24px);
+  /* Let GSAP handle initial states if needed */
 }
 
 /* ── Typography ───────────────────────────────── */
@@ -423,8 +423,7 @@ a { color:inherit; text-decoration:none; }
   font-size: clamp(1rem, 1.4vw, 1.2rem);
 }
 .tr {
-  opacity: 0;
-  transform: translateY(32px);
+  /* Let GSAP handle opacity and transform */
 }
 
 
@@ -432,7 +431,7 @@ a { color:inherit; text-decoration:none; }
    ABOUT THE AUTHOR
    ═══════════════════════════════════════════════════ */
 .s--author {
-  background: var(--cream);
+  background: transparent;
   min-height: auto;
   padding: 5rem 0 4rem;
 }
