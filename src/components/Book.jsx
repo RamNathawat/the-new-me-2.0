@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import * as THREE from 'three'
+import { useStore } from '../store'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -11,7 +12,7 @@ const POSE = {
   hero: { x: 0, y: 0, z: 0, rx: -0.08, ry: -0.25, rz: 0.05, sc: 1.1 },
   side: { x: -1.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 },
   sideRight: { x: 0.85, y: 0.05, z: 0, rx: -0.04, ry: 0.15, rz: -0.03, sc: 0.75 },
-  fill: { x: 0, y: 0, z: 1.8, rx: 0, ry: 0, rz: 0, sc: 3.2 },
+  fill: { x: -28.0, y: 28.0, z: 1.5, rx: 0, ry: 0, rz: 0, sc: 42.0 }, // Zooming deep into a blank beige corner to create the Match Cut
 };
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -26,6 +27,8 @@ function lerpPose(a, b, t) {
 export default function Book() {
   const { scene } = useGLTF('/book.glb')
   const group = useRef()
+  const setIsMapVisible = useStore(state => state.setIsMapVisible);
+  const wasVisibleRef = useRef(false);
   
   // State refs for animation
   const scrollState = useRef({
@@ -80,11 +83,20 @@ export default function Book() {
         onUpdate: (s) => { scrollState.current.toFill = s.progress; }
       });
 
-      // Book Fade out for Map
+      // Book Fade out for Map (This is exactly when we enter the Map section!)
       ScrollTrigger.create({
         trigger: '#s-map', start: 'top 20%', end: 'top top',
         scrub: 1.5,
-        onUpdate: (s) => { scrollState.current.toMapFade = s.progress; }
+        onUpdate: (s) => { 
+          scrollState.current.toMapFade = s.progress; 
+          
+          // Toggle the global state to restrict particle rendering
+          const mapVisible = s.progress > 0;
+          if (wasVisibleRef.current !== mapVisible) {
+            wasVisibleRef.current = mapVisible;
+            setIsMapVisible(mapVisible);
+          }
+        }
       });
 
       // Book Author entry
@@ -104,15 +116,21 @@ export default function Book() {
     const t = state.clock.elapsedTime;
     const s = scrollState.current;
     
-    // Mathematically flawless opacity & blur!
-    const canvasOpacity = 1 - s.toMapFade + s.toAuthor;
-    const canvasBlur = (s.toFill * 15) - (s.toAuthor * 15);
+    // We no longer fade the entire canvas! That hid the particles.
+    // Instead, we calculate the book's opacity so we can fade out the 3D model itself.
+    const bookOpacity = 1 - s.toMapFade + s.toAuthor;
     
-    const cc = document.getElementById('canvas-container');
-    if (cc) {
-      cc.style.opacity = canvasOpacity;
-      cc.style.filter = `blur(${Math.max(0, canvasBlur)}px)`;
-    }
+    // Apply opacity to the book materials
+    scene.traverse((child) => {
+      if (child.isMesh && child.material) {
+        // Enable transparency if we need to fade
+        if (!child.material.transparent) {
+          child.material.transparent = true;
+          child.material.needsUpdate = true;
+        }
+        child.material.opacity = Math.max(0, Math.min(1, bookOpacity));
+      }
+    });
     
     mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
     mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);

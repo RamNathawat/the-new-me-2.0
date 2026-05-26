@@ -105,26 +105,7 @@
       <div class="map__viewport" id="map-viewport" style="cursor: default;">
 
         <div class="map__canvas" id="map-canvas">
-          <!-- Elegant Organic Background SVG -->
-          <svg class="map__illustration" viewBox="0 0 3000 2000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            
-            <!-- Soft Organic Journey Path -->
-            <path d="M200,1000 C600,600 1200,1400 1500,1000 C1800,600 2400,1400 2800,1000" fill="none" stroke="#2D5A27" stroke-width="4" stroke-dasharray="12 24" stroke-linecap="round" opacity="0.3"/>
-            <path d="M200,1000 C600,600 1200,1400 1500,1000 C1800,600 2400,1400 2800,1000" fill="none" stroke="#C5D86D" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
 
-            <!-- Subtle Leaves floating around -->
-            <g opacity="0.4" fill="#2D5A27">
-              <!-- Leaf 1 -->
-              <path d="M600,700 Q620,680 640,700 Q620,720 600,700" />
-              <!-- Leaf 2 -->
-              <path d="M1200,1200 Q1230,1170 1260,1200 Q1230,1230 1200,1200" fill="#C5D86D" />
-              <!-- Leaf 3 -->
-              <path d="M1800,750 Q1820,720 1850,750 Q1820,780 1800,750" />
-              <!-- Leaf 4 -->
-              <path d="M2400,1250 Q2420,1230 2440,1250 Q2420,1270 2400,1250" fill="#C5D86D" />
-            </g>
-
-          </svg>
 
           <!-- Organic Chapter Nodes -->
           <button class="map__ch map__ch--organic" data-ch="0" style="left:20%; top:30%;" id="ch-nutrition">
@@ -185,6 +166,26 @@
         </div>
       </div>
     </section>
+
+    <!-- ════════════ MAP OVERLAY (Hidden by default) ════════════ -->
+    <div class="map__backdrop" id="map-backdrop"></div>
+    <div class="map__card" id="map-card">
+      <button class="map__card-close" id="map-card-close" aria-label="Close details">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="map__card-inner">
+        <span class="map__card-ch" id="map-card-ch">01 — Nutrition</span>
+        <h3 class="map__card-title" id="map-card-title">Food as Fuel.</h3>
+        <div class="map__card-rule"></div>
+        <p class="map__card-subtitle" id="map-card-subtitle">How plant-based nutrition reversed the markers.</p>
+        <div class="map__card-body" id="map-card-body">
+          <p>This is where the lived truth of Gagan's method is detailed. When the numbers demanded change, the first shift was on the plate.</p>
+        </div>
+      </div>
+    </div>
 
     <!-- ════════════ FOOTER ════════════ -->
     <footer class="site-footer">

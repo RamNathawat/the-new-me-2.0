@@ -7,7 +7,6 @@
   position: relative;
   z-index: 20;
   height: 100vh;
-  margin-top: 40vh; /* Spacer to prevent overlap with sticky text */
   background: transparent;
   overflow: hidden;
 }
@@ -152,14 +151,19 @@
   transform: translateX(-50%);
   width: min(680px, 94vw);
   max-height: 70vh;
-  background: var(--white);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -12px 60px rgba(0,0,0,0.12);
   z-index: 80;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: bottom 0.7s var(--ease);
+  /* GSAP will control movement, we can remove transition if GSAP handles it, 
+     but let's keep it just in case GSAP only handles classes. Actually, we'll remove bottom 
+     transition so GSAP can animate the y property directly. */
 }
 .map__card.open { bottom: 0; }
 .map__card-close {
@@ -277,66 +281,24 @@
   50% { transform: translate(2600px, 85px); }
 }
 
-/* ═══════════════════════════════════════════════════
-   MAP ORGANIC NODES
-   ═══════════════════════════════════════════════════ */
-.map__ch--organic {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  transform: translate(-50%, -50%); /* Center the absolutely positioned button */
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.4);
-  border-radius: 50%;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s ease;
-  border: 1px solid rgba(255, 255, 255, 0.6);
+/* ── ORGANIC HOVER BLOB ───────────────────────── */
+.organic-blob {
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  animation: morphBlob 8s ease-in-out infinite both alternate;
+  filter: blur(1px) contrast(1.1);
 }
 
-.map__ch--organic:hover {
-  transform: translate(-50%, -55%) scale(1.05);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 20px 40px rgba(45, 90, 39, 0.15);
-}
-
-.map__ch--organic .map__ch-pre {
-  font-family: var(--ff);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--sage-deep);
-  margin-bottom: 0.2rem;
-}
-
-.map__ch--organic .map__ch-title {
-  font-family: var(--fe);
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--dark);
-  line-height: 1;
-}
-
-/* The friendly breathing ring */
-.ch-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 2px solid var(--sage-light);
-  z-index: -1;
-  animation: organic-breathe 4s ease-in-out infinite;
-  opacity: 0.6;
-}
-
-@keyframes organic-breathe {
-  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+@keyframes morphBlob {
+  0% {
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
+  33% {
+    border-radius: 55% 45% 45% 55% / 55% 45% 60% 40%;
+  }
+  66% {
+    border-radius: 35% 65% 50% 50% / 50% 60% 40% 50%;
+  }
+  100% {
+    border-radius: 50% 50% 40% 60% / 60% 40% 50% 50%;
+  }
 }

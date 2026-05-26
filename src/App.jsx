@@ -8,6 +8,7 @@ import { useStore } from './store'
 
 import Book from './components/Book.jsx'
 import Overlay from './components/Overlay.jsx'
+import ParticleMap from './components/ParticleMap.jsx'
 
 function CameraSetup() {
   useThree(({ camera }) => {
@@ -50,7 +51,7 @@ export default function App() {
         {/* R3F Canvas - Now rendered ON TOP of the DOM layout, just like the original */}
         <div className="canvas-container" id="canvas-container" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10, pointerEvents: 'none', background: 'transparent', transition: 'opacity 0.1s' }}>
           <Canvas
-            camera={{ position: [0, 0.3, 5], fov: 32 }}
+            camera={{ position: [0, 0.3, 5], fov: 32, near: 0.01 }}
             dpr={[1, 2]}
             gl={{ antialias: false, powerPreference: "high-performance" }}
           >
@@ -65,8 +66,8 @@ export default function App() {
               
               <Book />
               
-              {/* The "Life" Particles */}
-              <Sparkles count={100} scale={15} size={2} speed={0.2} opacity={0.5} color="#2D5A27" />
+              {/* The Biological Particle Field */}
+              <ParticleMap />
               
               <EffectComposer multisampling={0}>
                 <Noise opacity={0.03} />

@@ -534,3 +534,9 @@ a { color:inherit; text-decoration:none; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ── DARK MODE TRANSITION (MAP SECTION) ───────── */
+.app-container {
+  background-color: var(--sage);
+  transition: background-color 1.5s var(--ease);
+}
