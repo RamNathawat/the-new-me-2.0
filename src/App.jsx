@@ -8,7 +8,6 @@ import { useStore } from './store'
 
 import Book from './components/Book.jsx'
 import Overlay from './components/Overlay.jsx'
-import ParticleMap from './components/ParticleMap.jsx'
 
 function CameraSetup() {
   useThree(({ camera }) => {
@@ -65,9 +64,6 @@ export default function App() {
               <directionalLight position={[0, 12, 2]} intensity={0.2} color="#FFFFFF" />
               
               <Book />
-              
-              {/* The Biological Particle Field */}
-              <ParticleMap />
               
               <EffectComposer multisampling={0}>
                 <Noise opacity={0.03} />

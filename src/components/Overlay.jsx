@@ -4,15 +4,17 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useStore } from '../store';
 import { useGLTF } from '@react-three/drei';
 import layoutHTML from '../vanilla-layout.html?raw';
+import InkCanvas from './InkCanvas.jsx';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function Overlay() {
   const setHoveredNode = useStore(state => state.setHoveredNode);
+  const setActivePillar = useStore(state => state.setActivePillar);
+  const setViewMode = useStore(state => state.setViewMode);
+  
   const overlayRef = useRef(null);
-  const hoverMaskRef = useRef(null);
-  const hoverImgRef = useRef(null);
-  const mapCardRef = useRef(null);
+  const takeoverRef = useRef(null);
 
   useEffect(() => {
     if (!overlayRef.current) return;
@@ -64,203 +66,203 @@ export default function Overlay() {
       }
     });
 
-    let cardOpen = false;
-
     // Map bio-nodes interaction
     const mapNodes = document.querySelectorAll('.map__ch');
-    const mapCard = document.getElementById('map-card');
-    const mapBackdrop = document.getElementById('map-backdrop');
-    const mapClose = document.getElementById('map-card-close');
-    mapCardRef.current = mapCard;
+    const mapTakeover = document.getElementById('map-takeover');
+    const takeoverClose = document.getElementById('takeover-close');
+    takeoverRef.current = mapTakeover;
 
-    // Data for the chapters (adding images for the wow factor hover)
+    // Premium Editorial Content
     const chapterData = {
-      'ch-nutrition': { img: '/abstract-nutrition.jpg', ch: '01 — Nutrition', title: 'Food as Fuel.', sub: 'Reversing markers through plant-based nutrition.', body: "<p>When the numbers demanded change, the first shift was on the plate. Nutrition became the primary tool to combat high cholesterol and sugar markers without relying on lifelong prescriptions.</p>" },
-      'ch-fitness': { img: '/abstract-fitness.jpg', ch: '02 — Movement', title: 'Disciplined Motion.', sub: 'Building resilience over time.', body: "<p>Fitness is not a trend, but a required daily habit. Structured movement rebuilds the body's capacity to handle stress and prevents the physical decline that many accept as normal.</p>" },
-      'ch-sleep': { img: '/abstract-sleep.jpg', ch: '03 — Recovery', title: 'Restorative Sleep.', sub: 'The most underrated pillar of health.', body: "<p>Without proper recovery, every other effort is compromised. Deep, restorative sleep allows the body to repair the damage of the day and reset for the next.</p>" },
-      'ch-mindset': { img: '/abstract-mindset.jpg', ch: '04 — Mindset', title: 'The Mental Shift.', sub: 'Choosing inquiry over resignation.', body: "<p>Transformation requires a complete shift in how you view yourself and your future. It is about believing that decline is optional and taking ownership of your healthspan.</p>" }
+      'ch-nutrition': { num: '01', category: 'Nutrition', title: 'Food as Fuel.', sub: 'Reversing markers through plant-based inquiry.', body: "<p>When high cholesterol and rising sugar levels threatened a lifetime of daily pills, Gagan chose a different path: complete biological reboot. He removed animal products, refined sugars, and processed oils entirely, shifting his body's fuel source to organic, nutrient-dense plants.</p><p>Within ninety days, the blood panels told a different story. The markers didn't just improve; they completely normalized. Nutrition was no longer a matter of taste, but a form of biochemistry—a precise tool to restore equilibrium and reverse the indicators of age and stress.</p><p>This chapter is the blueprint of that transition: how to restructure your plates, decode the body's responses, and treat nutrition as the first line of defense.</p>" },
+      'ch-fitness': { num: '02', category: 'Movement', title: 'Disciplined Motion.', sub: 'Biomechanical resilience and functional power over time.', body: "<p>Fitness is not a temporary phase or a vanity project; it is the physical framework that preserves your healthspan. Structured movement is the required daily ritual that rebuilds bone density, joint mobility, and cardiac output.</p><p>By focusing on biomechanical efficiency, compound strength, and cardiovascular thresholds, Gagan created a body capable of handling high stress and demanding physical loads well into his fifties.</p><p>Here lies the manual for sustainable physical empowerment: from mobility protocols and strength routines to aerobic foundations that prevent the typical physical decline accepted as inevitable by modern society.</p>" },
+      'ch-sleep': { num: '03', category: 'Recovery', title: 'Restorative Sleep.', sub: 'Deep cellular repair and neural down-regulation.', body: "<p>Without recovery, effort is merely damage. The modern high-performance life glorifies sleeplessness, yet sleep is the single most powerful therapeutic mechanism available to the human body.</p><p>Gagan prioritized circadian alignment, sleep hygiene, and down-regulation protocols to achieve deep, uninterrupted REM and slow-wave sleep. This allowed his nervous system to clear metabolic waste and repair tissue damage.</p><p>In this chapter, explore the mechanics of sleep architecture: how to engineer your sleeping environment, manage blue-light exposure, and employ natural relaxation methods to wake up fully restored.</p>" },
+      'ch-mindset': { num: '04', category: 'Mindset', title: 'The Mental Shift.', sub: 'Rewiring the subconscious for limitless ownership.', body: "<p>Every physical transformation is a mental conquest. Declining health is often accompanied by a sense of resignation, a belief that 'this is just what happens when you age.' The first and most critical hurdle is to reject that premise.</p><p>By shifting from passive compliance to active inquiry, Gagan took full ownership of his healthspan. Mindset is about developing the focus and consistency needed to execute these changes day in and day out, even when motivation fades.</p><p>This final chapter details the psychological tools of the transition: how to break toxic habits, build unbreakable consistency, and adopt the mental model of a self-repairing system.</p>" }
     };
 
-    // Close function with fluid GSAP
-    const closeCard = () => {
-      if (!cardOpen) return;
-      cardOpen = false;
-      mapBackdrop.classList.remove('on');
-      
-      gsap.to(mapCard, {
-        y: '100%',
-        duration: 0.6,
-        ease: "power3.inOut",
-        onComplete: () => {
-          mapCard.classList.remove('open');
-          // Important: remove inline styles so CSS bottom takes over if needed
-          gsap.set(mapCard, { clearProps: "y" });
-        }
-      });
-      setHoveredNode(null);
-    };
-
-    // Close on scroll mechanic
-    const onScroll = () => {
-      if (cardOpen) closeCard();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    // Track mouse for the hover mask
-    const onMouseMove = (e) => {
-      if (hoverMaskRef.current) {
-        gsap.to(hoverMaskRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          duration: 0.6,
-          ease: "power2.out",
-          overwrite: "auto"
-        });
-      }
-    };
-    window.addEventListener('mousemove', onMouseMove);
+    // Scroll lock logic will be handled below
 
     mapNodes.forEach((node) => {
-      // Add pulsing glow to each node
       const pulse = document.createElement('div');
       pulse.className = 'bio-pulse';
       node.appendChild(pulse);
 
       node.addEventListener('mouseenter', () => {
-        if (cardOpen) return;
+        if (useStore.getState().viewMode !== 'map') return;
         setHoveredNode(node.id);
-        const data = chapterData[node.id];
-        if (data && hoverMaskRef.current && hoverImgRef.current) {
-          // You can replace these image sources with actual assets later
-          // hoverImgRef.current.src = data.img; 
-          // For now, let's just make the mask a stunning solid vibrant gradient based on the node
-          const gradients = {
-            'ch-nutrition': 'radial-gradient(circle at center, rgba(197, 216, 109, 0.8) 0%, rgba(45, 90, 39, 0) 70%)',
-            'ch-fitness': 'radial-gradient(circle at center, rgba(244, 162, 97, 0.8) 0%, rgba(231, 111, 81, 0) 70%)',
-            'ch-sleep': 'radial-gradient(circle at center, rgba(138, 150, 144, 0.8) 0%, rgba(26, 26, 26, 0) 70%)',
-            'ch-mindset': 'radial-gradient(circle at center, rgba(232, 77, 49, 0.8) 0%, rgba(45, 90, 39, 0) 70%)'
-          };
-          const keywords = {
-            'ch-nutrition': 'NOURISH',
-            'ch-fitness': 'MOTION',
-            'ch-sleep': 'REST',
-            'ch-mindset': 'BELIEVE'
-          };
-          hoverImgRef.current.style.background = gradients[node.id];
-          if (hoverTextRef.current) hoverTextRef.current.textContent = keywords[node.id];
-          
-          gsap.to(hoverMaskRef.current, {
-            scale: 1,
-            opacity: 1,
-            duration: 0.8,
-            ease: "elastic.out(1, 0.75)"
-          });
-        }
+
+        const mapCanvas = document.getElementById('map-canvas');
+        if (mapCanvas) mapCanvas.setAttribute('data-focused', node.id);
+
+        // Camera zoom — scale up and translate toward the hovered word
+        const rect = node.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const offsetX = (vw / 2 - (rect.left + rect.width / 2)) * 0.15;
+        const offsetY = (vh / 2 - (rect.top + rect.height / 2)) * 0.15;
+
+        gsap.to('#map-canvas', {
+          scale: 1.12,
+          x: offsetX,
+          y: offsetY,
+          duration: 0.9,
+          ease: 'power2.out',
+          overwrite: 'auto',
+        });
       });
       
       node.addEventListener('mouseleave', () => {
-        if (cardOpen) return;
+        if (useStore.getState().viewMode !== 'map') return;
         setHoveredNode(null);
-        if (hoverMaskRef.current) {
-          gsap.to(hoverMaskRef.current, {
-            scale: 0,
-            opacity: 0,
-            duration: 0.4,
-            ease: "power2.in"
-          });
-        }
+
+        const mapCanvas = document.getElementById('map-canvas');
+        if (mapCanvas) mapCanvas.removeAttribute('data-focused');
+
+        gsap.to('#map-canvas', {
+          scale: 1,
+          x: 0,
+          y: 0,
+          duration: 0.7,
+          ease: 'power2.inOut',
+          overwrite: 'auto',
+        });
       });
       
       node.addEventListener('click', () => {
+        const currentMode = useStore.getState().viewMode;
+        if (currentMode !== 'map') return;
+        
         const data = chapterData[node.id];
-        if (data && !cardOpen) {
-          cardOpen = true;
-          document.getElementById('map-card-ch').textContent = data.ch;
-          document.getElementById('map-card-title').textContent = data.title;
-          document.getElementById('map-card-subtitle').textContent = data.sub;
-          document.getElementById('map-card-body').innerHTML = data.body;
+        if (!data) return;
+
+        // Reset camera instantly for the transition
+        gsap.to('#map-canvas', { scale: 1, x: 0, y: 0, duration: 0.3 });
+
+        setActivePillar(node.id);
+        setViewMode('transition');
+        
+        // Lock scroll
+        document.body.style.overflow = 'hidden';
+
+        // Set illustration image
+        const imgMap = {
+          'ch-nutrition': '/img/nutrition.png',
+          'ch-fitness': '/img/movement.png',
+          'ch-sleep': '/img/recovery.png',
+          'ch-mindset': '/img/mindset.png'
+        };
+        const takeoverImg = document.getElementById('takeover-image');
+        if (takeoverImg) takeoverImg.src = imgMap[node.id];
+
+        // Prepare content
+        document.getElementById('takeover-num').textContent = data.num;
+        document.getElementById('takeover-category').textContent = data.category;
+        document.getElementById('takeover-title').textContent = data.title;
+        document.getElementById('takeover-subtitle').textContent = data.sub;
+        document.getElementById('takeover-body').innerHTML = data.body;
+
+        // Prepare the elements for animation
+        const contentElements = mapTakeover.querySelectorAll('.takeover__content > *');
+        gsap.set(contentElements, { opacity: 0, y: 30, filter: 'blur(10px)' });
+        if (takeoverImg) gsap.set(takeoverImg, { opacity: 0 });
+
+        // Fade out map nodes and DNA bar
+        gsap.to(['.map__ch', '#dna-bar'], { opacity: 0, pointerEvents: 'none', duration: 0.5 });
+
+        // Timeline for the visual storytelling reveal
+        setTimeout(() => {
+          mapTakeover.classList.add('open');
           
-          // Hide hover mask when clicked
-          if (hoverMaskRef.current) {
-            gsap.to(hoverMaskRef.current, { scale: 0, opacity: 0, duration: 0.3 });
+          gsap.to(contentElements, {
+            opacity: 1,
+            y: 0,
+            filter: 'blur(0px)',
+            duration: 1.2,
+            stagger: 0.1,
+            ease: 'power3.out',
+            onComplete: () => {
+              setViewMode('takeover');
+            }
+          });
+          
+          if (takeoverImg) {
+            gsap.to(takeoverImg, {
+              opacity: 1,
+              duration: 2,
+              ease: 'power2.out'
+            });
           }
-          
-          mapBackdrop.classList.add('on');
-          mapCard.classList.add('open');
-          
-          // Fluid GSAP entry animation
-          gsap.fromTo(mapCard, 
-            { y: '100%' }, 
-            { y: '0%', duration: 0.8, ease: "elastic.out(1, 0.8)" }
-          );
-          
-          // Also set hover state to stick to this node while open
-          setHoveredNode(node.id);
-        }
+        }, 600);
       });
     });
 
-    if (mapClose && mapBackdrop) {
-      mapClose.addEventListener('click', closeCard);
-      mapBackdrop.addEventListener('click', closeCard);
+    const closeTakeover = () => {
+      if (useStore.getState().viewMode !== 'takeover') return;
+      setViewMode('retract');
+      
+      // Unlock scroll
+      document.body.style.overflow = '';
+
+      // Fade map nodes and DNA bar back in
+      gsap.to(['.map__ch', '#dna-bar'], { opacity: 1, pointerEvents: 'auto', duration: 0.8, delay: 0.2 });
+
+      const contentElements = mapTakeover.querySelectorAll('.takeover__content > *');
+      const takeoverImg = document.getElementById('takeover-image');
+      
+      gsap.to(contentElements, {
+        opacity: 0,
+        y: -20,
+        duration: 0.6,
+        stagger: 0.05,
+        ease: 'power3.in'
+      });
+      
+      if (takeoverImg) {
+        gsap.to(takeoverImg, { opacity: 0, duration: 0.6 });
+      }
+      
+      // Animate the map back into view
+      setTimeout(() => {
+        gsap.to('#map-canvas', {
+          scale: window.innerWidth < 768 ? 0.7 : 0.9,
+          x: 0,
+          y: 0,
+          duration: 1.2,
+          ease: 'power3.out',
+        });
+
+        mapTakeover.classList.remove('open');
+        setTimeout(() => {
+          setViewMode('map');
+          setActivePillar(null);
+        }, 1200);
+      }, 300);
+    };
+
+    if (takeoverClose) {
+      takeoverClose.addEventListener('click', closeTakeover);
     }
+
+    // Force close if user aggressively scrolls while locked
+    const onWheel = (e) => {
+      const mode = useStore.getState().viewMode;
+      if ((mode === 'takeover' || mode === 'transition') && Math.abs(e.deltaY) > 20) {
+        closeTakeover();
+      }
+    };
+    window.addEventListener('wheel', onWheel, { passive: true });
     
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('wheel', onWheel);
     };
   }, []);
-
-  // Added ref for the text inside the blob
-  const hoverTextRef = useRef(null);
-
   return (
     <div className="overlay-wrapper" ref={overlayRef}>
-      {/* Expanding Hover Preview Mask (Elegant & Airy) */}
-      <div ref={hoverMaskRef} style={{
-        position: 'fixed',
-        top: 0, left: 0,
-        width: '180px', height: '180px',
-        marginLeft: '-90px', marginTop: '-90px',
-        borderRadius: '50%',
-        pointerEvents: 'none',
-        zIndex: 50,
-        overflow: 'hidden',
-        scale: 0,
-        opacity: 0,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.1), inset 0 0 20px rgba(255,255,255,0.5)',
-        transformOrigin: 'center center',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.2)'
-      }}>
-        <div ref={hoverImgRef} style={{
-          position: 'absolute',
-          top: '-20%', left: '-20%',
-          width: '140%', height: '140%',
-          background: 'var(--sage)',
-          zIndex: 1,
-          filter: 'blur(30px)', /* Creates the ethereal aurora light leak */
-          opacity: 0.8
-        }}></div>
-        <span ref={hoverTextRef} style={{
-          position: 'relative',
-          zIndex: 2,
-          fontFamily: 'var(--fe)',
-          fontSize: '1.4rem',
-          fontWeight: '400',
-          letterSpacing: '0.15em',
-          color: 'var(--dark)',
-          textAlign: 'center',
-          lineHeight: 1,
-          textTransform: 'uppercase'
-        }}></span>
-      </div>
-
       {/* Injecting the exact Vanilla HTML layout safely */}
       <div dangerouslySetInnerHTML={{ __html: layoutHTML }} />
+
+      {/* Arrival-style ink canvas — renders behind the map buttons */}
+      <InkCanvas />
 
       {/* Progress DNA Bar (Custom scrollbar as requested) */}
       <div id="dna-bar" style={{

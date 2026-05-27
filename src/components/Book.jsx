@@ -40,6 +40,7 @@ export default function Book() {
   });
   
   const cur = useRef({ ...POSE.hero });
+  const vel = useRef({ x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sc: 0 });
   const mouse = useRef({ x: 0, y: 0 });
   const mouseSmooth = useRef({ x: 0, y: 0 });
 
@@ -158,15 +159,33 @@ export default function Book() {
     target.x += mx * 0.08 * hs;
     target.y += my * -0.04 * hs;
 
-    // LERP
-    const spd = 0.08;
-    cur.current.x = lerp(cur.current.x, target.x, spd);
-    cur.current.y = lerp(cur.current.y, target.y, spd);
-    cur.current.z = lerp(cur.current.z, target.z, spd);
-    cur.current.rx = lerp(cur.current.rx, target.rx, spd);
-    cur.current.ry = lerp(cur.current.ry, target.ry, spd);
-    cur.current.rz = lerp(cur.current.rz, target.rz, spd);
-    cur.current.sc = lerp(cur.current.sc, target.sc, spd);
+    // Spring physics for a bouncy, elastic animation
+    const stiffness = 0.08;
+    const damping = 0.75; // Creates overshoot/bounce
+
+    vel.current.x += (target.x - cur.current.x) * stiffness;
+    vel.current.y += (target.y - cur.current.y) * stiffness;
+    vel.current.z += (target.z - cur.current.z) * stiffness;
+    vel.current.rx += (target.rx - cur.current.rx) * stiffness;
+    vel.current.ry += (target.ry - cur.current.ry) * stiffness;
+    vel.current.rz += (target.rz - cur.current.rz) * stiffness;
+    vel.current.sc += (target.sc - cur.current.sc) * stiffness;
+
+    vel.current.x *= damping;
+    vel.current.y *= damping;
+    vel.current.z *= damping;
+    vel.current.rx *= damping;
+    vel.current.ry *= damping;
+    vel.current.rz *= damping;
+    vel.current.sc *= damping;
+
+    cur.current.x += vel.current.x;
+    cur.current.y += vel.current.y;
+    cur.current.z += vel.current.z;
+    cur.current.rx += vel.current.rx;
+    cur.current.ry += vel.current.ry;
+    cur.current.rz += vel.current.rz;
+    cur.current.sc += vel.current.sc;
 
     group.current.position.set(cur.current.x, cur.current.y, cur.current.z);
     group.current.rotation.set(cur.current.rx, cur.current.ry, cur.current.rz);

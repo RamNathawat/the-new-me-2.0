@@ -45,17 +45,49 @@
 /* ── CHAPTER HOTSPOTS ─────────────────────────── */
 .map__ch {
   position: absolute;
-  background: none;
+  background: transparent;
   border: none;
-  text-align: left;
+  color: var(--dark);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   cursor: pointer;
   z-index: 10;
-  /* Hover interactions */
-  transition: transform 0.4s var(--ease);
+  /* Transitions for both hover AND focus/defocus reversal */
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center center;
 }
 
 .map__ch:hover {
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(0.65);
+}
+
+/* ── FOCUS / DEFOCUS STATES ──────────────────── */
+/* Camera zoom — the entire canvas transforms toward the focused word */
+.map__canvas {
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* When any pillar is focused, all pillars get a base defocused state */
+.map__canvas[data-focused] .map__ch {
+  opacity: 0.06;
+  filter: blur(6px);
+  transform: scale(0.92);
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The focused pillar overrides defocus — stays sharp and scales DOWN to fit inside ink */
+.map__canvas[data-focused="ch-nutrition"] #ch-nutrition,
+.map__canvas[data-focused="ch-fitness"] #ch-fitness,
+.map__canvas[data-focused="ch-sleep"] #ch-sleep,
+.map__canvas[data-focused="ch-mindset"] #ch-mindset {
+  opacity: 1;
+  filter: blur(0px);
+  transform: scale(0.65);
+  z-index: 30;
 }
 
 .map__ch-pre {
@@ -96,16 +128,44 @@
   width: 100%;
 }
 
-.map__ch:hover .map__ch-pre {
-  color: var(--dark);
-}
-
 .map__ch-title {
   display: block;
   font-family: var(--ff);
-  font-size: 0.85rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  color: var(--dark);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.map__ch-desc {
+  display: block;
+  font-family: var(--fe);
+  font-size: 1.15rem;
+  color: var(--dark);
+  opacity: 0;
+  filter: blur(8px);
+  transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
   font-style: italic;
-  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.5;
+  margin-top: 0.4rem;
+  max-width: 280px;
+  transform-origin: left center;
+}
+
+.map__ch:hover .map__ch-desc {
+  transform: scale(0.85);
+}
+
+/* When this specific pillar is focused, reveal the description below the title */
+.map__canvas[data-focused="ch-nutrition"] #ch-nutrition .map__ch-desc,
+.map__canvas[data-focused="ch-fitness"] #ch-fitness .map__ch-desc,
+.map__canvas[data-focused="ch-sleep"] #ch-sleep .map__ch-desc,
+.map__canvas[data-focused="ch-mindset"] #ch-mindset .map__ch-desc {
+  opacity: 1;
+  filter: blur(0px);
+  transition-delay: 0.4s;
 }
 
 .map__ch-preview {
@@ -127,105 +187,180 @@
   max-height: 100px;
 }
 
-/* ── DETAIL CARD & BACKDROP (Slides up from bottom) ──────── */
-.map__backdrop {
+/* ── CHAPTER FULL-SCREEN TAKEOVER ──────── */
+.map__takeover {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(237, 232, 222, 0.4); /* Cream tint */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 70;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s var(--ease);
-}
-.map__backdrop.on {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.map__card {
-  position: fixed;
-  bottom: -100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(680px, 94vw);
-  max-height: 70vh;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: none;
-  border-radius: 24px 24px 0 0;
-  box-shadow: 0 -12px 60px rgba(0,0,0,0.12);
+  top: 0; left: 0; width: 100vw; height: 100vh;
   z-index: 80;
+  pointer-events: none;
+  opacity: 0;
   display: flex;
   flex-direction: column;
+  background: transparent;
+  transition: opacity 0.8s ease;
+}
+
+.map__takeover.open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.takeover__grid {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  width: 100%;
+  height: 100%;
+}
+
+.takeover__content {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 5rem 4.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 2;
+  height: 100%;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.takeover__num {
+  font-family: var(--ff);
+  font-size: 5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--sage-deep);
+  opacity: 0.15;
+  margin-bottom: 0.8rem;
+  display: block;
+}
+
+.takeover__category {
+  font-family: var(--ff);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--sage-deep);
+}
+
+.takeover__title {
+  font-family: var(--fe);
+  font-size: clamp(3rem, 6vw, 5rem);
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.takeover__rule {
+  width: 40px;
+  height: 3px;
+  background: var(--sage);
+  margin-bottom: 2rem;
+}
+
+.takeover__subtitle {
+  font-family: var(--fe);
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--dark);
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+.takeover__body {
+  font-family: var(--ff);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--dark);
+  opacity: 0.85;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: auto;
+}
+
+.takeover__close {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transform: translateY(20px);
+  /* we will animate opacity & transform via GSAP */
+  margin-bottom: 4rem; /* add extra bottom padding for scrolling */
+}
+
+.takeover__close-text {
+  font-family: var(--ff);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dark);
+}
+
+.takeover__close-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s var(--ease);
+}
+
+.takeover__close:hover .takeover__close-circle {
+  background: var(--dark);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* Right side Illustration */
+.takeover__illustration {
+  position: relative;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  /* GSAP will control movement, we can remove transition if GSAP handles it, 
-     but let's keep it just in case GSAP only handles classes. Actually, we'll remove bottom 
-     transition so GSAP can animate the y property directly. */
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
-.map__card.open { bottom: 0; }
-.map__card-close {
-  position: absolute; top: 1.2rem; right: 1.2rem; width: 40px; height: 40px;
-  border-radius: 50%; border: none; background: var(--cream);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; z-index: 2; transition: transform 0.3s var(--ease), background 0.3s;
-}
-.map__card-close:hover { transform: scale(1.1) rotate(90deg); background: var(--sage-light); }
-.map__card-close svg { color: var(--dark); }
 
-.map__card-inner { padding: 2.5rem 3rem 1.5rem; overflow-y: auto; flex: 1; }
-.map__card-ch {
-  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.18em; color: var(--sage-deep); display: block; margin-bottom: 0.3rem;
+.takeover__illustration img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  /* Very slow, elegant breathing animation */
+  animation: breatheImage 25s ease-in-out infinite alternate;
+  transform-origin: center center;
+  filter: contrast(1.1) brightness(0.95);
+  mix-blend-mode: multiply;
 }
-.map__card-title {
-  font-family: var(--ff); font-size: clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 900; line-height: 1; letter-spacing: -0.04em; color: var(--dark); margin-bottom: 0.8rem;
-}
-.map__card-rule { width: 40px; height: 3px; background: var(--sage); margin-bottom: 1rem; border-radius: 2px; }
-.map__card-subtitle {
-  font-family: var(--fe); font-style: italic; font-size: 1.15rem;
-  line-height: 1.5; color: var(--dark); margin-bottom: 1.2rem; font-weight: 700;
-}
-.map__card-body { font-size: 0.95rem; line-height: 1.75; color: var(--dark); }
-.map__card-body p { margin-bottom: 1rem; }
-.map__card-body p:last-child { margin-bottom: 0; }
-.map__card-body strong { font-weight: 700; }
 
-.map__card-nav {
-  display: flex; justify-content: space-between; padding: 1rem 3rem 1.5rem;
-  border-top: 1px solid rgba(0,0,0,0.05);
+@keyframes breatheImage {
+  0% { transform: scale(1.15); }
+  100% { transform: scale(1.25); }
 }
-.map__card-prev, .map__card-next {
-  display: flex; align-items: center; gap: 0.4rem; background: none;
-  border: none; cursor: pointer; font-family: var(--ff); font-size: 0.72rem;
-  font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--muted); padding: 0.5rem 0; transition: color 0.3s, transform 0.3s var(--ease);
-}
-.map__card-prev:hover, .map__card-next:hover { color: var(--dark); }
-.map__card-prev:hover { transform: translateX(-3px); }
-.map__card-next:hover { transform: translateX(3px); }
-
-.map__close-float {
-  position: fixed; top: 1.5rem; right: 1.5rem; width: 48px; height: 48px;
-  border-radius: 50%; border: none; background: var(--white);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.1); display: flex; align-items: center;
-  justify-content: center; cursor: pointer; z-index: 90;
-  transition: transform 0.3s var(--ease), background 0.3s;
-}
-.map__close-float:hover { transform: scale(1.1) rotate(90deg); background: var(--cream); }
-.map__close-float svg { color: var(--dark); }
 
 /* ── Responsive ───────────────────────────────── */
 @media (max-width: 900px) {
-  .map__card-inner { padding: 2rem 1.5rem 1rem; }
-  .map__card-nav { padding: 1rem 1.5rem 1.2rem; }
-}
-
-@media (max-width: 768px) {
-  .map__card { width: 100vw; border-radius: 20px 20px 0 0; }
+  .takeover__grid { grid-template-columns: 100%; }
+  .takeover__content { padding: 4rem 2rem; }
+  .takeover__canvas-spacer { display: none; }
 }
 
 /* ── MAP JOURNEY PATH ────────────────────── */

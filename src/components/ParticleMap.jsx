@@ -129,19 +129,30 @@ void main() {
   // Overall transition weight (if any shape is active, it calms down)
   float totalWeight = clamp(uWeightSphere + uWeightHelix + uWeightPlane + uWeightTorus, 0.0, 1.0);
   
-  // Mix from chaotic to structured
-  pos = mix(pos, targetPos, totalWeight);
+  // -- Brush Drawing Animation --
+  // Calculate polar angle of the particle's TARGET position
+  float angle = atan(targetPos.y, targetPos.x) + 3.14159; // 0 to 6.28
+  float normalizedAngle = angle / 6.28318; // 0.0 to 1.0
+  
+  // Sweep progress from 0 to 1.2 so it fully finishes the circle
+  float sweepProgress = totalWeight * 1.2;
+  
+  // The particle snaps into the logogram only when the brush sweeps past its angle
+  float brushWeight = smoothstep(normalizedAngle - 0.2, normalizedAngle, sweepProgress);
+  
+  // Mix from chaotic to structured using the brush weight, not totalWeight
+  pos = mix(pos, targetPos, brushWeight);
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   
-  // Size attenuation
-  gl_PointSize = aSize * (10.0 / -mvPosition.z);
+  // Size attenuation: Large brush tips. Scale them up dynamically as the brush paints them.
+  gl_PointSize = aSize * (100.0 / -mvPosition.z) * (0.3 + 0.7 * brushWeight);
   
-  // Colors: Deep, dark ink-like tones for a light background
-  vec3 colorSageDeep = vec3(0.07, 0.15, 0.09); // Very dark forest green
-  vec3 colorOlive = vec3(0.2, 0.25, 0.2); // Dark muted grey-green
-  vec3 colorGold = vec3(0.5, 0.3, 0.1); // Deep burnt orange/brown for contrast
+  // Colors: Very, very dark green (almost black) to match ink reference
+  vec3 colorSageDeep = vec3(0.01, 0.025, 0.01); 
+  vec3 colorOlive = vec3(0.02, 0.03, 0.015);
+  vec3 colorGold = vec3(0.0, 0.0, 0.0); 
   
   // Blend colors organically based on particle's noise phase and position
   float mixFactor = smoothstep(-1.0, 1.0, sin(pos.x * 0.5 + aRandomPhase.z * 10.0));
@@ -151,14 +162,15 @@ void main() {
   float highlight = smoothstep(0.8, 1.0, aRandomPhase.y);
   vec3 idleColor = mix(baseColor, colorGold, highlight * 0.8);
   
-  // When forming shapes (totalWeight > 0), they unify into a solid vibrant tone slightly
+  // When forming shapes, they unify into a solid vibrant tone slightly
   vec3 shapeColor = mix(colorSageDeep, colorGold, aRandomPhase.x * 0.3);
   
-  vColor = mix(idleColor, shapeColor, totalWeight);
+  vColor = mix(idleColor, shapeColor, brushWeight);
   
   // Alpha fading at edges
   float edgeFade = 1.0 - smoothstep(10.0, 15.0, length(pos.xy));
-  vAlpha = mix(0.4, 0.8, totalWeight) * edgeFade;
+  // Extremely high opacity for deep, wet, solid ink. Wait until brush paints it!
+  vAlpha = mix(0.0, 0.95, brushWeight) * edgeFade;
 }
 `;
 
@@ -167,11 +179,15 @@ varying vec3 vColor;
 varying float vAlpha;
 
 void main() {
-  // Soft circle
-  float d = distance(gl_PointCoord, vec2(0.5));
-  if (d > 0.5) discard;
+  // Calculate polar coordinates for brush tip
+  vec2 uv = gl_PointCoord.xy - vec2(0.5);
+  float r = length(uv);
   
-  float alpha = smoothstep(0.5, 0.1, d) * vAlpha;
+  // Perfectly smooth circle - the jaggedness comes from the macro placement of points, not the micro shape!
+  if (r > 0.5) discard;
+  
+  // Sharp, wet brush edge (no soft gradient, pure ink)
+  float alpha = smoothstep(0.5, 0.45, r) * vAlpha;
   gl_FragColor = vec4(vColor, alpha);
 }
 `;
@@ -255,76 +271,72 @@ export default function ParticleMap() {
     const pos = new Float32Array(count * 3);
     const siz = new Float32Array(count);
     const phases = new Float32Array(count * 3);
-    const sphere = new Float32Array(count * 3);
-    const helix = new Float32Array(count * 3);
-    const plane = new Float32Array(count * 3);
-    const torus = new Float32Array(count * 3);
+    
+    // Helper to generate hyper-realistic coffee-stain / Sumi-e logograms
+    const generateArrivalInk = (seed, radius, thickness, tendrilCount) => {
+      const arr = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        let r = radius;
+        
+        const type = Math.random();
+        
+        if (type < 0.75) {
+          // 75% of particles form a razor-thin, tight base ring (no massive wobble)
+          const wobble = Math.sin(theta * 3 + seed) * 0.05 + Math.cos(theta * 7 + seed * 2.1) * 0.02;
+          r += wobble;
+          
+          // Tiny offset for the crisp edge
+          const offset = (Math.random() - 0.5) * thickness * 0.1;
+          r += offset;
+        } else if (type < 0.95) {
+          // 20% form heavy, dense pools
+          const wobble = Math.sin(theta * 3 + seed) * 0.05 + Math.cos(theta * 7 + seed * 2.1) * 0.02;
+          r += wobble;
+          
+          const poolAngle = Math.sin(theta * tendrilCount + seed);
+          if (poolAngle > 0.7) {
+            // Very deep pool
+            const offset = (Math.random() - 0.5) * thickness * 1.5; 
+            r += offset;
+          } else {
+            const offset = (Math.random() - 0.5) * thickness * 0.3;
+            r += offset;
+          }
+        } else {
+          // 5% are sharp, tiny splatters shooting outwards
+          const wobble = Math.sin(theta * 3 + seed) * 0.05 + Math.cos(theta * 7 + seed * 2.1) * 0.02;
+          r += wobble;
+          
+          r += (Math.random() * thickness * 2.5) * (Math.random() > 0.5 ? 1 : -1);
+        }
+
+        arr[i * 3 + 0] = Math.cos(theta) * r;
+        arr[i * 3 + 1] = Math.sin(theta) * r;
+        arr[i * 3 + 2] = (Math.random() - 0.5) * 0.05; // Keep depth extremely flat to look like 2D ink
+      }
+      return arr;
+    };
+
+    // Make the rings tighter and smaller so they don't consume the screen
+    const sphere = generateArrivalInk(0.0, 2.2, 0.4, 3.0);
+    const helix = generateArrivalInk(13.5, 2.2, 0.6, 5.0);
+    const plane = generateArrivalInk(42.1, 2.2, 0.2, 2.0);
+    const torus = generateArrivalInk(99.9, 2.2, 0.5, 4.0);
     
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
       
-      // Base random positions
+      // Base chaotic background positions (when no pillar is active)
       pos[idx + 0] = (Math.random() - 0.5) * 20;
       pos[idx + 1] = (Math.random() - 0.5) * 15;
       pos[idx + 2] = (Math.random() - 0.5) * 10 - 2;
       
-      siz[i] = Math.random() * 8 + 2;
+      siz[i] = Math.random() > 0.95 ? (Math.random() * 5 + 2) : (Math.random() * 25 + 15); // Mostly massive blobs, some tiny specks
       
       phases[idx + 0] = Math.random();
       phases[idx + 1] = Math.random();
       phases[idx + 2] = Math.random();
-      
-      // 1. The Atom (Nutrition) - Core + 2 Rings
-      if (i % 3 === 0) {
-        // Dense Core
-        const phi = Math.random() * Math.PI * 2;
-        const costheta = (Math.random() * 2) - 1;
-        const theta = Math.acos(costheta);
-        const rSphere = 1.0 + Math.random() * 0.5; // dense small core
-        sphere[idx + 0] = rSphere * Math.sin(theta) * Math.cos(phi);
-        sphere[idx + 1] = rSphere * Math.sin(theta) * Math.sin(phi);
-        sphere[idx + 2] = rSphere * Math.cos(theta);
-      } else if (i % 3 === 1) {
-        // Horizontal Ring
-        const angle = Math.random() * Math.PI * 2;
-        const rRing = 4.0 + (Math.random() - 0.5) * 0.5;
-        sphere[idx + 0] = Math.cos(angle) * rRing;
-        sphere[idx + 1] = (Math.random() - 0.5) * 0.5; // slight thickness
-        sphere[idx + 2] = Math.sin(angle) * rRing;
-      } else {
-        // Vertical Ring
-        const angle = Math.random() * Math.PI * 2;
-        const rRing = 4.0 + (Math.random() - 0.5) * 0.5;
-        sphere[idx + 0] = Math.cos(angle) * rRing;
-        sphere[idx + 1] = Math.sin(angle) * rRing;
-        sphere[idx + 2] = (Math.random() - 0.5) * 0.5; // slight thickness
-      }
-
-      // 2. The Double Helix (Movement) - Tighter, taller, spinning
-      const t = Math.random() * Math.PI * 12; // taller
-      const strand = i % 2 === 0 ? 0 : Math.PI; // dual strand
-      const rHelix = 1.2; // tighter radius
-      helix[idx + 0] = Math.cos(t + strand) * rHelix;
-      helix[idx + 1] = (t / (Math.PI * 12)) * 14 - 7; // Y from -7 to 7
-      helix[idx + 2] = Math.sin(t + strand) * rHelix;
-
-      // 3. The Sleep Wave (Recovery) - Smooth Sine Wave
-      const waveX = (Math.random() - 0.5) * 20;
-      const waveZ = (Math.random() - 0.5) * 12;
-      const waveY = Math.sin(waveX * 0.5) * 1.5 + Math.cos(waveZ * 0.5) * 1.5;
-      plane[idx + 0] = waveX;
-      plane[idx + 1] = waveY - 2.0; // lower down
-      plane[idx + 2] = waveZ;
-
-      // 4. The Neural Spiral (Mindset) - Galaxy
-      const arms = 3;
-      const armIndex = i % arms;
-      const angle = (Math.random() * Math.PI * 4); // swirl length
-      const radius = angle * 0.6 + (Math.random() * 1.5); // spread
-      const armOffset = (Math.PI * 2 / arms) * armIndex;
-      torus[idx + 0] = Math.cos(angle + armOffset) * radius;
-      torus[idx + 1] = (Math.random() - 0.5) * 1.0; // flat galaxy
-      torus[idx + 2] = Math.sin(angle + armOffset) * radius;
     }
     return [pos, siz, phases, sphere, helix, plane, torus];
   }, [count]);
