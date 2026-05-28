@@ -365,6 +365,9 @@ export default function InkCanvas() {
   useEffect(() => {
     if (viewMode === 'map') {
       if (hoveredNode && LOGOGRAMS[hoveredNode]) {
+        if (activeLogogramRef.current !== hoveredNode) {
+          progressRef.current = 0;
+        }
         activeLogogramRef.current = hoveredNode;
         targetProgressRef.current = 1;
         const el = document.getElementById(hoveredNode);
@@ -374,9 +377,20 @@ export default function InkCanvas() {
           const cy = rect.top + rect.height / 2;
           
           targetPosRef.current = { x: cx, y: cy };
+          if (progressRef.current === 0) {
+             currentPosRef.current = { ...targetPosRef.current };
+          }
         }
       } else {
         targetProgressRef.current = 0;
+        
+        // When user exits the node, capture the exact exit angle!
+        // This ensures the logogram dissolves from the opposite end and the exit point is the last to disappear.
+        const dx = mousePosRef.current.x - targetPosRef.current.x;
+        const dy = mousePosRef.current.y - targetPosRef.current.y;
+        if (dx !== 0 || dy !== 0) {
+           contactAngleRef.current = Math.atan2(dy, dx);
+        }
       }
     }
   }, [hoveredNode, viewMode]);
@@ -449,14 +463,10 @@ export default function InkCanvas() {
       drawCx = currentPosRef.current.x;
       drawCy = currentPosRef.current.y;
       
-      // Dynamic Angle Tracking for Liquid Retraction
+      // Dynamic Angle Tracking for Liquid Retraction is now handled precisely on exit in the useEffect!
       if (activeLogogramRef.current) {
-        // Capture entry angle when we just start drawing
+        // We still capture the entry angle just in case the mouse warped inside without triggering the Overlay event
         if (targetProgressRef.current === 1 && progressRef.current < 0.05) {
-          contactAngleRef.current = Math.atan2(dy, dx);
-        }
-        // Invisibly track exit angle while fully drawn
-        if (targetProgressRef.current === 1 && progressRef.current > 0.98) {
           contactAngleRef.current = Math.atan2(dy, dx);
         }
       }
