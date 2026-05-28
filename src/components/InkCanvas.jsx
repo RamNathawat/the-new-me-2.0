@@ -502,6 +502,7 @@ export default function InkCanvas() {
       hasParticles ||                      // Particles are alive
       isTransitioning ||                   // Transitioning modes
       (distToMouse < 260) ||               // Mouse is close enough to warp/drift
+      !!useStore.getState().pullingPillar || // A gravity well is active
       !isSettled;                          // Center position is still settling
 
     if (!needsRedraw) {
@@ -534,23 +535,32 @@ export default function InkCanvas() {
     
     // 1. Spawn new droplets from the cursor if being pulled but not latched
     if (currentPulling && progressRef.current === 0) {
-       // Spawn randomly (1-2 droplets per frame)
-       if (Math.random() > 0.3) {
+       // Intensify spawn rate if we are directly hovering the button
+       const spawnChance = currentPulling.isHovered ? 0.7 : 0.3;
+       
+       if (Math.random() > (1 - spawnChance)) {
           const dx = currentPulling.cx - mx;
           const dy = currentPulling.cy - my;
           const dist = Math.sqrt(dx * dx + dy * dy);
           
-          if (dist > 0) {
+          if (dist > 0 || currentPulling.isHovered) {
              const angle = Math.atan2(dy, dx);
+             
+             // Spawn at cursor and pull towards pillar/button
              const speed = 1 + Math.random() * 3;
-             const spread = (Math.random() - 0.5) * 1.2; // slight chaotic ejection
+             const spread = (Math.random() - 0.5) * 1.2;
+             const startX = mx + (Math.random() - 0.5) * 12;
+             const startY = my + (Math.random() - 0.5) * 12;
+             const vx = Math.cos(angle + spread) * speed;
+             const vy = Math.sin(angle + spread) * speed;
+
              particlesRef.current.push({
-                x: mx + (Math.random() - 0.5) * 12,
-                y: my + (Math.random() - 0.5) * 12,
-                vx: Math.cos(angle + spread) * speed,
-                vy: Math.sin(angle + spread) * speed,
+                x: startX,
+                y: startY,
+                vx: vx,
+                vy: vy,
                 target: currentPulling,
-                size: 3 + Math.random() * 5,
+                size: 3 + Math.random() * 6,
                 life: 1.0,
                 decay: 0.01 + Math.random() * 0.02
              });

@@ -346,7 +346,16 @@ export default function Overlay() {
       let targetX, targetY;
       let distToPillar = 0;
 
-      if (orbitSnapCoords) {
+      if (closeSnapCoords) {
+        // Magnetic pull to the back button circle or nav pills
+        targetX = closeSnapCoords.x;
+        targetY = closeSnapCoords.y;
+        orbitLatched = true;
+      } else if (letterSnapCoords) {
+        // Magnetic letter gravity: strong pull to the letter center
+        targetX = letterSnapCoords.x;
+        targetY = letterSnapCoords.y;
+      } else if (orbitSnapCoords) {
         // Liquid Magnetic Orbit: calculate distance to pillar center
         const dx = orbitSnapCoords.x - cx;
         const dy = orbitSnapCoords.y - cy;
@@ -363,15 +372,6 @@ export default function Overlay() {
           targetX = mx;
           targetY = my;
         }
-      } else if (letterSnapCoords) {
-        // Magnetic letter gravity: strong pull to the letter center
-        targetX = letterSnapCoords.x;
-        targetY = letterSnapCoords.y;
-      } else if (closeSnapCoords) {
-        // Magnetic pull to the back button circle
-        targetX = closeSnapCoords.x;
-        targetY = closeSnapCoords.y;
-        orbitLatched = true;
       } else {
         targetX = mx;
         targetY = my;
@@ -399,7 +399,7 @@ export default function Overlay() {
       const breatheX = 1 + Math.sin(time) * 0.04;
       const breatheY = 1 + Math.cos(time * 1.1) * 0.04;
 
-      if (orbitSnapCoords && !orbitLatched) {
+      if (orbitSnapCoords && !orbitLatched && !closeSnapCoords) {
         // Liquid orbit stretch: stretch heavily towards the pillar as we approach
         const dx = orbitSnapCoords.x - cx;
         const dy = orbitSnapCoords.y - cy;
@@ -484,7 +484,7 @@ export default function Overlay() {
       if (!dot) return;
       const t = e.target;
       const takeoverBtn = t ? t.closest('#takeover-close') : null;
-      const navPill = t ? t.closest('.nav-pill') : null;
+      const navPill = t && t.closest ? t.closest('.nav-pill, .header__cta') : null;
       
       if (takeoverBtn) {
         dot.classList.add('is-close-btn');
@@ -513,7 +513,7 @@ export default function Overlay() {
           ct.textContent = navPill.textContent.trim();
           ct.style.opacity = '1';
         }
-      } else if (t && t.closest && t.closest('a, button, .header__cta, .takeover__close, [role="button"]')) {
+      } else if (t && t.closest && t.closest('a, button, .takeover__close, [role="button"]')) {
         dot.classList.add('is-link');
         dot.classList.remove('is-close-btn', 'is-nav-pill');
         closeSnapCoords = null;
@@ -594,7 +594,8 @@ export default function Overlay() {
     let cachedJelloGroups = [];
 
     const buildCache = () => {
-      cachedMapNodes = mapChNodes.map(node => {
+      const mapNodes = Array.from(jelloRoot.querySelectorAll('.map__ch, .header__cta'));
+      cachedMapNodes = mapNodes.map(node => {
         // We still need to call this on mousemove because the map transforms (scales/pans).
         // But we only do it if the map is active.
         return { node }; 
@@ -637,6 +638,22 @@ export default function Overlay() {
 
       if (useStore.getState().viewMode === 'map') {
         cachedMapNodes.forEach((cached) => {
+          if (cached.node.classList.contains('map__ch')) {
+            const rect = cached.node.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
+            if (dist < closestPillarDist) {
+              closestPillarDist = dist;
+              closestPillar = { node: cached.node, cx, cy };
+            }
+          }
+        });
+      }
+      
+      // Always check the header CTA regardless of view mode
+      cachedMapNodes.forEach((cached) => {
+        if (cached.node.classList.contains('header__cta')) {
           const rect = cached.node.getBoundingClientRect();
           const cx = rect.left + rect.width / 2;
           const cy = rect.top + rect.height / 2;
@@ -645,8 +662,8 @@ export default function Overlay() {
             closestPillarDist = dist;
             closestPillar = { node: cached.node, cx, cy };
           }
-        });
-      }
+        }
+      });
 
       const svgOrbit = null;
       const svgCircle = null;
@@ -663,19 +680,29 @@ export default function Overlay() {
         const currentPulling = useStore.getState().pullingPillar;
 
         if (closestPillarDist <= orbitRadius) {
-          if (currentPulling) useStore.getState().setPullingPillar(null);
+          if (closestPillar.node.classList.contains('header__cta')) {
+            // Keep gravity intensely active for the Buy button when fully hovered
+            if (!currentPulling || currentPulling.id !== closestPillar.node.id || !currentPulling.isHovered) {
+              useStore.getState().setPullingPillar({ cx: closestPillar.cx, cy: closestPillar.cy, id: closestPillar.node.id, isHovered: true });
+            }
+          } else {
+            // Turn off gravity for map pillars so they can draw their logograms
+            if (currentPulling) useStore.getState().setPullingPillar(null);
+          }
 
           if (!orbitLatched || currentLatchedPillar !== closestPillar.node) {
             orbitLatched = true;
             currentLatchedPillar = closestPillar.node;
             
+            if (closestPillar.node.classList.contains('map__ch')) {
               const dx = clientX - closestPillar.cx;
               const dy = clientY - closestPillar.cy;
               const contactAngle = Math.atan2(dy, dx); // radians
               setContactAngle(contactAngle);
               
               // Latch impact: Hide the cursor dot
-            if (cursorInner) cursorInner.classList.add('is-ring');
+              if (cursorInner) cursorInner.classList.add('is-ring');
+            }
           }
         } else {
           // Within influence zone, but unlatched (Gravity Well active)
