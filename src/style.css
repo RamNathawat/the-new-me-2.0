@@ -60,7 +60,8 @@ a { color:inherit; text-decoration:none; }
   letter-spacing: .3em;
   text-transform: uppercase;
   color: rgba(250,250,247,.4);
-  margin-bottom: .5rem;
+  margin-bottom: 2rem;
+  content-visibility: auto;
 }
 .loader__bar {
   width: 80px; height: 2px;
@@ -184,21 +185,52 @@ a { color:inherit; text-decoration:none; }
   opacity:0; transform:translateY(-100%);
   transition: opacity .8s var(--ease), transform .8s var(--ease);
 }
-.site-header.on { opacity:1; transform:translateY(0); pointer-events:auto; }
+.site-header.on { opacity:1; transform:translateY(0);  pointer-events: auto;
+}
+
+/* ── PREFERS REDUCED MOTION ───────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .ink-cursor__dot {
+    animation: none !important;
+    border-radius: 50% !important;
+  }
+  .particle {
+    display: none !important;
+  }
+  .gooey-wrapper {
+    filter: none !important;
+  }
+}
 
 .header__nav { display:flex; gap:.5rem; }
 .nav-pill {
-  padding: .65rem 1.4rem;
-  background: var(--white);
-  border-radius: 50px;
-  font-size: .75rem;
-  font-weight: 700;
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  background: rgba(13, 19, 17, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--black);
   text-transform: uppercase;
-  letter-spacing: .08em;
-  box-shadow: 0 2px 16px rgba(0,0,0,.05);
-  transition: transform .35s var(--ease), background .35s, box-shadow .35s;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 50;
+  text-decoration: none;
 }
-.nav-pill:hover { box-shadow: 0 4px 22px rgba(0,0,0,.08); }
+
+.nav-pill:hover {
+  background: rgba(13, 19, 17, 0.1);
+  filter: drop-shadow(0 0 10px rgba(13, 19, 17, 0.15));
+  color: #fff;
+}
 
 .header__cta {
   display:flex; align-items:center; gap:.6rem;
@@ -226,8 +258,9 @@ a { color:inherit; text-decoration:none; }
    HERO — Book-First, Sage Atmosphere
    ═══════════════════════════════════════════════════ */
 .s--hero {
-  height: 180vh;
+  height: 120vh;
   background: var(--sage);
+  content-visibility: auto;
 }
 
 .hero__bg-reveal {
@@ -344,7 +377,7 @@ a { color:inherit; text-decoration:none; }
 }
 
 .s--story-pinned {
-  height: 250vh;
+  height: 180vh;
 }
 
 .story__sticky {
@@ -526,7 +559,7 @@ a { color:inherit; text-decoration:none; }
 @media (max-width: 900px) {
   .story__grid { grid-template-columns: 1fr; padding: 0 2rem; }
   .story__spacer { display: none; }
-  .s--story-pinned { height: 200vh; }
+  .s--story-pinned { height: 150vh; }
   .author__portrait { width: 5.5rem; height: 5.5rem; }
   .author__quote { margin-top: 0.5rem; padding-top: 1.2rem; }
   .loader__tagline { font-size: clamp(1.6rem, 5vw, 2.8rem); }
@@ -600,7 +633,7 @@ a { color:inherit; text-decoration:none; }
   height: 28px;
   margin: -14px 0 0 -14px;
   background: #0a0f0a;
-  will-change: transform, opacity;
+  will-change: transform;
   transition: width 0.45s cubic-bezier(0.19, 1, 0.22, 1),
               height 0.45s cubic-bezier(0.19, 1, 0.22, 1),
               margin 0.45s cubic-bezier(0.19, 1, 0.22, 1),

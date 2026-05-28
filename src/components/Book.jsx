@@ -45,13 +45,38 @@ export default function Book() {
   const mouseSmooth = useRef({ x: 0, y: 0 });
   const introAnim = useRef({ y: 0, ry: Math.PI * -2 });
 
+  // Scroll velocity tracking
+  const scrollVel = useRef(0);
+  const lastScrollY = useRef(0);
+  const smoothScrollVel = useRef(0);
+
+  // Lemniscate (figure-8) orbit phase
+  const orbitPhase = useRef(0);
+  // How strongly the orbit is active (1 = full drift, 0 = scroll overriding)
+  const orbitStrength = useRef(1);
+  const lastScrollTime = useRef(0);
+
   useEffect(() => {
     const handleMove = (e) => {
       mouse.current.x = (e.clientX / innerWidth) * 2 - 1;
       mouse.current.y = -(e.clientY / innerHeight) * 2 + 1;
     };
+
+    const handleScroll = () => {
+      const currentY = window.scrollY || window.pageYOffset;
+      scrollVel.current = currentY - lastScrollY.current;
+      lastScrollY.current = currentY;
+      lastScrollTime.current = performance.now();
+      // Suppress orbit while scrolling
+      orbitStrength.current = 0;
+    };
+
     window.addEventListener('mousemove', handleMove);
-    return () => window.removeEventListener('mousemove', handleMove);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const materialsRef = useRef([]);
@@ -151,7 +176,7 @@ export default function Book() {
     return () => ctx.revert()
   }, [])
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!group.current) return;
     const t = state.clock.elapsedTime;
     const s = scrollState.current;
@@ -167,6 +192,20 @@ export default function Book() {
       });
       prevOpacityRef.current = bookOpacity;
     }
+
+    // ── Smooth scroll velocity (for tilt reactivity) ──
+    smoothScrollVel.current = lerp(smoothScrollVel.current, scrollVel.current, 0.08);
+    // Decay raw scroll velocity so it doesn't persist
+    scrollVel.current *= 0.9;
+
+    // ── Orbit strength recovery ──
+    // After scrolling stops, gradually restore the ambient orbit
+    const timeSinceScroll = performance.now() - lastScrollTime.current;
+    if (timeSinceScroll > 300) {
+      orbitStrength.current = lerp(orbitStrength.current, 1, 0.008);
+    }
+
+    // ── Mouse smoothing ──
     mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
     mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
 
@@ -180,26 +219,66 @@ export default function Book() {
     target.y += introAnim.current.y;
     target.ry += introAnim.current.ry;
 
-    // Breathing
+    // ── How "zoomed-in" are we? ──
     const fillAmt = s.toFill * (1 - s.toAuthor);
-    const fm = 1 - fillAmt * 0.7; // reduce breathing when zoomed in
-    target.x += Math.sin(t * 0.38 + 0.7) * 0.015 * fm;
-    target.y += Math.sin(t * 0.6) * 0.05 * fm;
-    target.ry += Math.sin(t * 0.22) * 0.02 * fm;
-    target.rx += Math.sin(t * 0.32 + 1.2) * 0.003 * fm;
-    target.rz += Math.sin(t * 0.18 + 2) * 0.002 * fm;
 
-    // Cursor
+    // ══════════════════════════════════════════════════
+    // FLOATING MEDITATION — Lemniscate Orbital Drift
+    // ══════════════════════════════════════════════════
+    // Advance the figure-8 phase continuously
+    orbitPhase.current += delta * 0.15; // Very slow orbit speed
+    const orbitAmp = orbitStrength.current * (1 - fillAmt * 0.9); // Suppress during zoom
+    
+    // Lemniscate parametric equations (figure-8)
+    const lemnT = orbitPhase.current;
+    const orbitX = Math.sin(lemnT) * 0.08 * orbitAmp;
+    const orbitY = Math.sin(lemnT * 2) * 0.04 * orbitAmp;
+    const orbitZ = Math.cos(lemnT * 0.7) * 0.03 * orbitAmp;
+    
+    target.x += orbitX;
+    target.y += orbitY;
+    target.z += orbitZ;
+    // Subtle rotation drift from the orbit
+    target.ry += Math.sin(lemnT * 0.5) * 0.03 * orbitAmp;
+    target.rz += Math.cos(lemnT * 0.8) * 0.008 * orbitAmp;
+
+    // ══════════════════════════════════════════════════
+    // AMPLIFIED BREATHING — 3× more alive
+    // ══════════════════════════════════════════════════
+    const fm = 1 - fillAmt * 0.7; // reduce breathing when zoomed in
+    target.x += Math.sin(t * 0.38 + 0.7) * 0.04 * fm;
+    target.y += Math.sin(t * 0.6) * 0.12 * fm;
+    target.ry += Math.sin(t * 0.22) * 0.05 * fm;
+    target.rx += Math.sin(t * 0.32 + 1.2) * 0.01 * fm;
+    target.rz += Math.sin(t * 0.18 + 2) * 0.006 * fm;
+
+    // ══════════════════════════════════════════════════
+    // SCROLL-VELOCITY TILT — Forward/backward lean
+    // ══════════════════════════════════════════════════
+    const tiltAmount = Math.max(-0.12, Math.min(0.12, smoothScrollVel.current * 0.003));
+    target.rx += tiltAmount * (1 - fillAmt);
+
+    // ══════════════════════════════════════════════════
+    // DRAMATIC CURSOR-REACTIVE TILT — "Curiosity Peek"
+    // ══════════════════════════════════════════════════
     const mx = mouseSmooth.current.x, my = mouseSmooth.current.y;
     const hs = Math.max(0.1, 1 - s.toSide * 0.6 - fillAmt * 0.8);
-    target.ry += mx * 0.16 * hs;
-    target.rx += my * 0.08 * hs;
-    target.x += mx * 0.08 * hs;
-    target.y += my * -0.04 * hs;
+    
+    // Enhanced tilt: left mouse = peek at cover, right = peek at spine
+    target.ry += mx * 0.22 * hs;
+    target.rx += my * 0.12 * hs;
+    // Position parallax
+    target.x += mx * 0.1 * hs;
+    target.y += my * -0.06 * hs;
+    // Z-axis repulsion: cursor near center pushes book slightly away
+    const mouseProximity = 1 - Math.sqrt(mx * mx + my * my);
+    target.z += mouseProximity * -0.08 * hs;
 
-    // Spring physics for a bouncy, elastic animation
-    const stiffness = 0.08;
-    const damping = 0.75; // Creates overshoot/bounce
+    // ══════════════════════════════════════════════════
+    // BOUNCY SPRING PHYSICS — Elastic, organic feel
+    // ══════════════════════════════════════════════════
+    const stiffness = 0.05;
+    const damping = 0.65; // Creates more overshoot/bounce
 
     vel.current.x += (target.x - cur.current.x) * stiffness;
     vel.current.y += (target.y - cur.current.y) * stiffness;

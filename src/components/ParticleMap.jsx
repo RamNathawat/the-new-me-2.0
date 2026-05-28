@@ -197,7 +197,7 @@ export function BioNetwork() {
 
   const [lineGeometry, points] = useMemo(() => {
     const pts = [];
-    const numNodes = 150;
+    const numNodes = 80;
     const nodes = [];
     
     // Core pillar positions roughly mapped to screen layout
@@ -265,7 +265,7 @@ export default function ParticleMap() {
   const hoveredNode = useStore(state => state.hoveredNode);
   const transitionTarget = useRef(0);
 
-  const count = 8000;
+  const count = 5000;
   
   const [positions, sizes, randomPhases, posSphere, posHelix, posPlane, posTorus] = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -361,26 +361,18 @@ export default function ParticleMap() {
     gsap.to(u.uWeightTorus, { value: hoveredNode === 'ch-mindset' ? 1 : 0, duration: 1.2, ease: "power2.out" });
   }, [hoveredNode]);
 
+  // Cache mouse target for lerp in useFrame (avoids creating gsap tweens on every mousemove)
+  const mouseTarget = useRef({ x: 0, y: 0 });
+
   useEffect(() => {
     const onMouseMove = (e) => {
-      // normalized coordinates -1 to +1
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = -(e.clientY / window.innerHeight) * 2 + 1;
-      // Convert to world space roughly based on camera z=5
-      const worldX = (x * viewport.width) / 2;
-      const worldY = (y * viewport.height) / 2;
-      
-      if (materialRef.current) {
-        gsap.to(materialRef.current.uniforms.uMouse.value, {
-          x: worldX,
-          y: worldY,
-          duration: 0.2,
-          ease: 'power2.out'
-        });
-      }
+      mouseTarget.current.x = (x * viewport.width) / 2;
+      mouseTarget.current.y = (y * viewport.height) / 2;
     };
     
-    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', onMouseMove);
   }, [viewport]);
 
@@ -400,6 +392,10 @@ export default function ParticleMap() {
 
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+      // Lerp mouse uniform directly in frame loop instead of per-mousemove gsap tween
+      const mu = materialRef.current.uniforms.uMouse.value;
+      mu.x += (mouseTarget.current.x - mu.x) * 0.1;
+      mu.y += (mouseTarget.current.y - mu.y) * 0.1;
     }
     
     // Camera zoom when a node is actively hovered/clicked

@@ -133,7 +133,7 @@ const LOGOGRAMS = {
 };
 
 // Organic warp function applied to point coordinates based on mouse proximity
-function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time = 0) {
+function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transitionProgress) {
   // Global position of point
   let gx = cx + px * scale;
   let gy = cy + py * scale;
@@ -153,9 +153,10 @@ function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transiti
 
   const dx = gx - mx;
   const dy = gy - my;
-  const dist = Math.sqrt(dx * dx + dy * dy);
+  const distSq = dx * dx + dy * dy;
   
-  if (dist < 200) {
+  if (distSq < 40000) { // 200*200
+    const dist = Math.sqrt(distSq);
     const force = Math.pow(1 - dist / 200, 2) * 35; // Maximum 35px pull
     return {
       x: gx - (dx / dist) * force,
@@ -167,14 +168,12 @@ function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transiti
 }
 
 // ─── Draw a logogram at a given progress ───
-function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTransitioning, transitionProgress, contactAngle, time) {
+function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTransitioning, transitionProgress, contactAngle) {
   ctx.save();
-  // We do NOT translate the context, because we calculate absolute warped positions
 
   for (const s of strokes) {
     let dynamicOrder = s.order;
     if (contactAngle !== undefined && contactAngle !== null) {
-      // Re-map the stroke order so it starts at the contact angle and flows in both directions
       const strokeAngle = s.order * 2 * Math.PI;
       let diff = Math.abs(strokeAngle - contactAngle);
       diff = diff % (Math.PI * 2);
@@ -183,16 +182,16 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
     }
 
     let strokeProgress = Math.max(0, Math.min(1, (progress * 1.15 - dynamicOrder) / 0.15));
-    if (isTransitioning) strokeProgress = 1; // Fully drawn during transition
+    if (isTransitioning) strokeProgress = 1;
     if (strokeProgress <= 0) continue;
 
     const alpha = isTransitioning ? (1 - transitionProgress) : strokeProgress;
     if (alpha <= 0) continue;
 
     if (s.type === 'arc') {
-      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
-      const p1 = getWarpedPoint(s.x1, s.y1, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
-      const pMid = getWarpedPoint(s.cx, s.cy, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const p1 = getWarpedPoint(s.x1, s.y1, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const pMid = getWarpedPoint(s.cx, s.cy, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
 
       ctx.beginPath();
       ctx.strokeStyle = color;
@@ -204,7 +203,7 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
       ctx.quadraticCurveTo(pMid.x, pMid.y, p1.x, p1.y);
       ctx.stroke();
     } else if (s.type === 'pool') {
-      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
       ctx.beginPath();
       ctx.fillStyle = color;
       ctx.globalAlpha = alpha * 0.85;
@@ -218,7 +217,7 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
       }
       ctx.fill();
     } else if (s.type === 'splatter') {
-      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
       ctx.beginPath();
       ctx.fillStyle = color;
       ctx.globalAlpha = alpha * 0.65;
@@ -230,9 +229,9 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
       const tcx = s.x0 + (s.cx - s.x0) * strokeProgress;
       const tcy = s.y0 + (s.cy - s.y0) * strokeProgress;
       
-      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
-      const p1 = getWarpedPoint(tx, ty, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
-      const pMid = getWarpedPoint(tcx, tcy, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const p1 = getWarpedPoint(tx, ty, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const pMid = getWarpedPoint(tcx, tcy, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
 
       ctx.beginPath();
       ctx.strokeStyle = color;
@@ -248,86 +247,10 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
   ctx.restore();
 }
 
-// ─── Procedural Masterpieces for Fullscreen Takeover ───
-// These generate static strokes that are drawn continually with hover warping
-function generateNutritionRoots(w, h) {
-  const strokes = [];
-  const rng = seedRandom(123);
-  for (let i = 0; i < 40; i++) {
-    const angle = rng() * Math.PI - Math.PI / 2; // Right side spread
-    const len = 300 + rng() * 500;
-    const endX = Math.cos(angle) * len;
-    const endY = Math.sin(angle) * len;
-    strokes.push({
-      type: 'tendril', x0: 0, y0: 0, cx: endX * 0.5, cy: endY * 0.3,
-      x1: endX, y1: endY, width: 2 + rng() * 12, order: rng()
-    });
-    strokes.push({
-      type: 'pool', x: endX, y: endY, size: 10 + rng() * 30, order: rng()
-    });
-  }
-  return strokes;
-}
-
-function generateMovementSweeps(w, h) {
-  const strokes = [];
-  const rng = seedRandom(456);
-  for (let i = 0; i < 30; i++) {
-    const y0 = (rng() - 0.5) * h;
-    const y1 = y0 + (rng() - 0.5) * 400;
-    strokes.push({
-      type: 'arc', x0: -100, y0: y0, cx: w*0.4, cy: y0 - 200,
-      x1: w, y1: y1, width: 1 + rng() * 15, order: rng()
-    });
-    for (let j=0; j<3; j++) {
-      strokes.push({
-        type: 'splatter', x: w * rng(), y: y0 + (y1-y0)*rng() + (rng()-0.5)*100, size: 2 + rng() * 6, order: rng()
-      });
-    }
-  }
-  return strokes;
-}
-
-function generateRecoveryMist(w, h) {
-  const strokes = [];
-  const rng = seedRandom(789);
-  for (let i = 0; i < 60; i++) {
-    const y = (rng() - 0.5) * h * 0.8;
-    strokes.push({
-      type: 'arc', x0: -w*0.2, y0: y, cx: w*0.5, cy: y + (rng()-0.5)*100,
-      x1: w*1.2, y1: y, width: 40 + rng() * 80, order: rng() // very wide and soft
-    });
-  }
-  return strokes;
-}
-
-function generateMindsetWeb(w, h) {
-  const strokes = [];
-  const rng = seedRandom(101);
-  const points = [];
-  for (let i = 0; i < 25; i++) {
-    points.push({ x: (rng() - 0.2) * w * 0.6, y: (rng() - 0.5) * h * 0.8 });
-  }
-  for (let i = 0; i < points.length; i++) {
-    strokes.push({ type: 'pool', x: points[i].x, y: points[i].y, size: 8 + rng() * 12, order: rng() });
-    for (let j = i + 1; j < points.length; j++) {
-      const dx = points[i].x - points[j].x;
-      const dy = points[i].y - points[j].y;
-      if (Math.sqrt(dx*dx + dy*dy) < 300) {
-        strokes.push({
-          type: 'tendril', x0: points[i].x, y0: points[i].y, cx: (points[i].x+points[j].x)/2 + (rng()-0.5)*50,
-          cy: (points[i].y+points[j].y)/2 + (rng()-0.5)*50, x1: points[j].x, y1: points[j].y,
-          width: 1 + rng()*2, order: rng()
-        });
-      }
-    }
-  }
-  return strokes;
-}
-
 // ─── React Component ───
 export default function InkCanvas() {
   const canvasRef = useRef(null);
+  const ctxRef = useRef(null); // Cache canvas context
   const progressRef = useRef(0);
   const targetProgressRef = useRef(0);
   const activeLogogramRef = useRef(null);
@@ -338,26 +261,32 @@ export default function InkCanvas() {
   
   // Transition state
   const transitionProgressRef = useRef(0);
-  const takeoverMasterpieceRef = useRef(null);
 
   const rafRef = useRef(null);
   const contactAngleRef = useRef(0);
   const particlesRef = useRef([]);
   const lastHitTimesRef = useRef({});
   const canvasDirtyRef = useRef(false);
+  
+  // Cached dimensions (updated on resize only)
+  const dimsRef = useRef({ w: window.innerWidth, h: window.innerHeight });
+  
+  // Cache ink-char elements per pillar to avoid querySelectorAll in hot path
+  const charCacheRef = useRef({});
 
   const INK_COLOR = 'rgb(3, 8, 3)';
   const hoveredNode = useStore((state) => state.hoveredNode);
   const isMapVisible = useStore((state) => state.isMapVisible);
   const activePillar = useStore((state) => state.activePillar);
-  const viewMode = useStore((state) => state.viewMode); // 'map', 'transition', 'takeover', 'retract'
+  const viewMode = useStore((state) => state.viewMode);
 
   // Mouse tracking
   useEffect(() => {
     const handleMouseMove = (e) => {
-      mousePosRef.current = { x: e.clientX, y: e.clientY };
+      mousePosRef.current.x = e.clientX;
+      mousePosRef.current.y = e.clientY;
     };
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
@@ -378,14 +307,20 @@ export default function InkCanvas() {
           
           targetPosRef.current = { x: cx, y: cy };
           if (progressRef.current === 0) {
-             currentPosRef.current = { ...targetPosRef.current };
+             currentPosRef.current.x = cx;
+             currentPosRef.current.y = cy;
           }
+        }
+        
+        // Pre-cache ink-char elements for this pillar
+        if (!charCacheRef.current[hoveredNode]) {
+          charCacheRef.current[hoveredNode] = Array.from(
+            document.querySelectorAll(`#${hoveredNode} .ink-char`)
+          );
         }
       } else {
         targetProgressRef.current = 0;
         
-        // When user exits the node, capture the exact exit angle!
-        // This ensures the logogram dissolves from the opposite end and the exit point is the last to disappear.
         const dx = mousePosRef.current.x - targetPosRef.current.x;
         const dy = mousePosRef.current.y - targetPosRef.current.y;
         if (dx !== 0 || dy !== 0) {
@@ -399,13 +334,6 @@ export default function InkCanvas() {
   useEffect(() => {
     if (viewMode === 'transition') {
       targetProgressRef.current = 1;
-      // Generate the masterpiece based on activePillar
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      if (activePillar === 'ch-nutrition') takeoverMasterpieceRef.current = generateNutritionRoots(w, h);
-      else if (activePillar === 'ch-fitness') takeoverMasterpieceRef.current = generateMovementSweeps(w, h);
-      else if (activePillar === 'ch-sleep') takeoverMasterpieceRef.current = generateRecoveryMist(w, h);
-      else if (activePillar === 'ch-mindset') takeoverMasterpieceRef.current = generateMindsetWeb(w, h);
     } else if (viewMode === 'retract') {
       targetProgressRef.current = 0;
     }
@@ -414,11 +342,10 @@ export default function InkCanvas() {
   // Animation loop
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = ctxRef.current;
+    if (!canvas || !ctx) return;
 
-    const ctx = canvas.getContext('2d');
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const { w, h } = dimsRef.current;
     timeRef.current += 0.016;
 
     // ViewMode state machine updates
@@ -443,13 +370,13 @@ export default function InkCanvas() {
     let drawCy = currentPosRef.current.y;
 
     if (viewMode === 'map') {
-      // Magnetic drift of the ring center toward the mouse
       const maxDrift = 40;
       const dx = mx - targetPosRef.current.x;
       const dy = my - targetPosRef.current.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
+      const distSq = dx*dx + dy*dy;
       
-      if (dist < 250 && dist > 0) {
+      if (distSq < 62500 && distSq > 0) { // 250*250
+        const dist = Math.sqrt(distSq);
         const pull = Math.min(dist * 0.15, maxDrift);
         const targetCx = targetPosRef.current.x + (dx/dist) * pull;
         const targetCy = targetPosRef.current.y + (dy/dist) * pull;
@@ -463,15 +390,12 @@ export default function InkCanvas() {
       drawCx = currentPosRef.current.x;
       drawCy = currentPosRef.current.y;
       
-      // Dynamic Angle Tracking for Liquid Retraction is now handled precisely on exit in the useEffect!
       if (activeLogogramRef.current) {
-        // We still capture the entry angle just in case the mouse warped inside without triggering the Overlay event
         if (targetProgressRef.current === 1 && progressRef.current < 0.05) {
           contactAngleRef.current = Math.atan2(dy, dx);
         }
       }
     } else if (viewMode === 'takeover' || viewMode === 'transition' || viewMode === 'retract') {
-      // In takeover mode, the epicenter is on the right side of the screen
       const rightSideTargetX = w * 0.75;
       const rightSideTargetY = h * 0.5;
       
@@ -493,17 +417,23 @@ export default function InkCanvas() {
     const isFullyHidden = progressRef.current === 0 && targetProgressRef.current === 0;
     const hasParticles = particlesRef.current.length > 0;
     
-    const distToMouse = Math.sqrt(Math.pow(mx - drawCx, 2) + Math.pow(my - drawCy, 2));
+    // Read store state once per frame (not per particle)
+    const storeState = useStore.getState();
+    const currentPulling = storeState.pullingPillar;
+    
+    const dxMouse = mx - drawCx;
+    const dyMouse = my - drawCy;
+    const distToMouseSq = dxMouse * dxMouse + dyMouse * dyMouse;
     const isSettled = Math.abs(currentPosRef.current.x - targetPosRef.current.x) < 0.5 && 
                       Math.abs(currentPosRef.current.y - targetPosRef.current.y) < 0.5;
 
     const needsRedraw = 
-      (!isFullyDrawn && !isFullyHidden) || // Actively drawing/erasing
-      hasParticles ||                      // Particles are alive
-      isTransitioning ||                   // Transitioning modes
-      (distToMouse < 260) ||               // Mouse is close enough to warp/drift
-      !!useStore.getState().pullingPillar || // A gravity well is active
-      !isSettled;                          // Center position is still settling
+      (!isFullyDrawn && !isFullyHidden) ||
+      hasParticles ||
+      isTransitioning ||
+      (distToMouseSq < 67600) || // 260*260
+      !!currentPulling ||
+      !isSettled;
 
     if (!needsRedraw) {
       if (isFullyHidden && canvasDirtyRef.current) {
@@ -525,40 +455,35 @@ export default function InkCanvas() {
       if (strokes && transitionProgressRef.current < 0.95) {
         drawLogogram(
           ctx, strokes, progressRef.current, drawCx, drawCy, INK_COLOR, scale, mx, my, 
-          isTransitioning, transitionProgressRef.current, contactAngleRef.current, timeRef.current
+          isTransitioning, transitionProgressRef.current, contactAngleRef.current
         );
       }
     }
     
-    // Process Gravity Well Droplets
-    const currentPulling = useStore.getState().pullingPillar;
-    
-    // 1. Spawn new droplets from the cursor if being pulled but not latched
+    // Process Gravity Well Droplets — spawn more readily (user request)
     if (currentPulling && progressRef.current === 0) {
-       // Intensify spawn rate if we are directly hovering the button
-       const spawnChance = currentPulling.isHovered ? 0.7 : 0.3;
+       // INCREASED spawn rates for "easier pull" feel
+       const spawnChance = currentPulling.isHovered ? 0.85 : 0.5;
        
-       if (Math.random() > (1 - spawnChance)) {
+       if (Math.random() < spawnChance) {
           const dx = currentPulling.cx - mx;
           const dy = currentPulling.cy - my;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const distSq = dx * dx + dy * dy;
           
-          if (dist > 0 || currentPulling.isHovered) {
+          if (distSq > 0 || currentPulling.isHovered) {
+             const dist = Math.sqrt(distSq);
              const angle = Math.atan2(dy, dx);
              
-             // Spawn at cursor and pull towards pillar/button
              const speed = 1 + Math.random() * 3;
              const spread = (Math.random() - 0.5) * 1.2;
              const startX = mx + (Math.random() - 0.5) * 12;
              const startY = my + (Math.random() - 0.5) * 12;
-             const vx = Math.cos(angle + spread) * speed;
-             const vy = Math.sin(angle + spread) * speed;
 
              particlesRef.current.push({
                 x: startX,
                 y: startY,
-                vx: vx,
-                vy: vy,
+                vx: Math.cos(angle + spread) * speed,
+                vy: Math.sin(angle + spread) * speed,
                 target: currentPulling,
                 size: 3 + Math.random() * 6,
                 life: 1.0,
@@ -568,11 +493,13 @@ export default function InkCanvas() {
        }
     }
 
-    // 2. Process and draw all active droplets
-    if (particlesRef.current.length > 0) {
+    // Process and draw all active droplets — swap-remove instead of splice
+    const particles = particlesRef.current;
+    if (particles.length > 0) {
       ctx.fillStyle = INK_COLOR;
-      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-        const p = particlesRef.current[i];
+      let i = 0;
+      while (i < particles.length) {
+        const p = particles[i];
         
         p.x += p.vx;
         p.y += p.vy;
@@ -581,81 +508,84 @@ export default function InkCanvas() {
         if (p.target) {
            const dx = p.target.cx - p.x;
            const dy = p.target.cy - p.y;
-           const dist = Math.sqrt(dx * dx + dy * dy);
-           if (dist > 0) {
-              const pullForce = 80 / (dist + 20); // Acceleration increases as it gets closer
+           const distSq = dx * dx + dy * dy;
+           if (distSq > 0) {
+              const dist = Math.sqrt(distSq);
+              const pullForce = 80 / (dist + 20);
               p.vx += (dx / dist) * pullForce;
               p.vy += (dy / dist) * pullForce;
-           }
-           
-           if (dist < 60) {
-              if (!p.hit) {
-                 p.hit = true;
-                 if (p.target && p.target.id) {
-                    const now = performance.now();
-                    const lastHit = lastHitTimesRef.current[p.target.id] || 0;
-                    if (now - lastHit > 250) { // Throttle slightly less to allow rapid hits
-                       lastHitTimesRef.current[p.target.id] = now;
-                       
-                       const chars = Array.from(document.querySelectorAll(`#${p.target.id} .ink-char`));
-                       if (chars.length > 0) {
-                          // Find the closest letter to the droplet impact point
-                          let closestIdx = 0;
-                          let minCharDist = Infinity;
-                          chars.forEach((charEl, idx) => {
-                             const rect = charEl.getBoundingClientRect();
-                             const charCx = rect.left + rect.width / 2;
-                             const charCy = rect.top + rect.height / 2;
-                             const d = Math.hypot(p.x - charCx, p.y - charCy);
-                             if (d < minCharDist) {
-                                minCharDist = d;
-                                closestIdx = idx;
-                             }
-                          });
+              
+              if (dist < 60) {
+                if (!p.hit) {
+                  p.hit = true;
+                  if (p.target.id) {
+                     const now = performance.now();
+                     const lastHit = lastHitTimesRef.current[p.target.id] || 0;
+                     if (now - lastHit > 250) {
+                        lastHitTimesRef.current[p.target.id] = now;
+                        
+                        // Use cached chars instead of querySelectorAll
+                        const chars = charCacheRef.current[p.target.id] || 
+                          Array.from(document.querySelectorAll(`#${p.target.id} .ink-char`));
+                        if (chars.length > 0) {
+                           let closestIdx = 0;
+                           let minCharDist = Infinity;
+                           for (let ci = 0; ci < chars.length; ci++) {
+                              const rect = chars[ci].getBoundingClientRect();
+                              const charCx = rect.left + rect.width / 2;
+                              const charCy = rect.top + rect.height / 2;
+                              const d = Math.hypot(p.x - charCx, p.y - charCy);
+                              if (d < minCharDist) {
+                                 minCharDist = d;
+                                 closestIdx = ci;
+                              }
+                           }
 
-                          // Trigger the wave outward from the closest letter
-                          const triggerAbsorb = (idx, delay, isCore) => {
-                             if (idx < 0 || idx >= chars.length) return;
-                             setTimeout(() => {
-                                const el = chars[idx];
-                                const className = isCore ? 'ink-hit-core' : 'ink-hit-ripple';
-                                el.classList.remove('ink-hit-core', 'ink-hit-ripple');
-                                void el.offsetWidth;
-                                el.classList.add(className);
-                             }, delay);
-                          };
+                           const triggerAbsorb = (idx, delay, isCore) => {
+                              if (idx < 0 || idx >= chars.length) return;
+                              setTimeout(() => {
+                                 const el = chars[idx];
+                                 const className = isCore ? 'ink-hit-core' : 'ink-hit-ripple';
+                                 el.classList.remove('ink-hit-core', 'ink-hit-ripple');
+                                 void el.offsetWidth;
+                                 el.classList.add(className);
+                              }, delay);
+                           };
 
-                          triggerAbsorb(closestIdx, 0, true);
-                          for (let w = 1; w <= 4; w++) {
-                             triggerAbsorb(closestIdx - w, w * 50, false); // Left ripple
-                             triggerAbsorb(closestIdx + w, w * 50, false); // Right ripple
-                          }
-                       }
-                    }
-                 }
+                           triggerAbsorb(closestIdx, 0, true);
+                           for (let wi = 1; wi <= 4; wi++) {
+                              triggerAbsorb(closestIdx - wi, wi * 50, false);
+                              triggerAbsorb(closestIdx + wi, wi * 50, false);
+                           }
+                        }
+                     }
+                  }
+                }
+                p.life -= 0.15;
               }
-              p.life -= 0.15; // Rapid decay
            }
         }
         
-        p.vx *= 0.92; // fluid friction
+        p.vx *= 0.92;
         p.vy *= 0.92;
         p.life -= p.decay;
         
         if (p.life <= 0) {
-          particlesRef.current.splice(i, 1);
-          continue;
+          // Swap-remove: O(1) instead of splice O(n)
+          particles[i] = particles[particles.length - 1];
+          particles.pop();
+          continue; // Don't increment i, re-check the swapped element
         }
         
         // Draw droplet
         ctx.beginPath();
-        const currentSize = p.size * Math.pow(Math.max(0, p.life), 0.5); // non-linear shrink
+        const currentSize = p.size * Math.pow(Math.max(0, p.life), 0.5);
         ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
         ctx.fill();
+        
+        i++;
       }
     }
-
-    // The takeover masterpiece procedural generation has been replaced with custom illustrations in the DOM.
 
     rafRef.current = requestAnimationFrame(animate);
   }, [hoveredNode, viewMode, activePillar]);
@@ -666,13 +596,17 @@ export default function InkCanvas() {
     if (!canvas) return;
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.style.width = window.innerWidth + 'px';
-      canvas.style.height = window.innerHeight + 'px';
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap DPR at 2
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
       const ctx = canvas.getContext('2d');
       ctx.scale(dpr, dpr);
+      ctxRef.current = ctx;
+      dimsRef.current = { w, h };
     };
 
     resize();

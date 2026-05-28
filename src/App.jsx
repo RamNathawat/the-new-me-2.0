@@ -43,6 +43,10 @@ function SceneLighting() {
 }
 
 export default function App() {
+  const viewMode = useStore(state => state.viewMode);
+  // Pause the heavy 3D canvas when taking over the screen
+  const frameloop = viewMode === 'takeover' || viewMode === 'transition' ? 'demand' : 'always';
+
   return (
     <ReactLenis root options={{ smoothWheel: true, duration: 1.4 }}>
       <div className="app-container">
@@ -50,8 +54,9 @@ export default function App() {
         {/* R3F Canvas - Now rendered ON TOP of the DOM layout, just like the original */}
         <div className="canvas-container" id="canvas-container" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10, pointerEvents: 'none', background: 'transparent', transition: 'opacity 0.1s' }}>
           <Canvas
+            frameloop={frameloop}
             camera={{ position: [0, 0.3, 5], fov: 32, near: 0.01 }}
-            dpr={[1, 2]}
+            dpr={[1, 1.5]} // Capped DPR to 1.5 for performance
             gl={{ antialias: false, powerPreference: "high-performance" }}
           >
             <CameraSetup />
@@ -64,6 +69,17 @@ export default function App() {
               <directionalLight position={[0, 12, 2]} intensity={0.2} color="#FFFFFF" />
               
               <Book />
+              
+              {/* Soft shadow beneath the book for floating depth */}
+              <ContactShadows
+                position={[0, -1.3, 0]}
+                opacity={0.25}
+                scale={6}
+                blur={2}
+                far={4}
+                resolution={256}
+                color="#2a3a2e"
+              />
               
               <EffectComposer multisampling={0}>
                 <Noise opacity={0.03} />

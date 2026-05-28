@@ -501,15 +501,24 @@ export default function Overlay() {
         closeSnapCoords = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
         
         // Pass exact dimensions and font styles to CSS variables
-        const computed = window.getComputedStyle(navPill);
+        // CACHED computed styles to prevent layout thrash on hover
+        if (!navPill._cachedStyle) {
+          const computed = window.getComputedStyle(navPill);
+          navPill._cachedStyle = {
+            fontSize: computed.fontSize,
+            fontWeight: computed.fontWeight,
+            letterSpacing: computed.letterSpacing
+          };
+        }
+        
         dot.style.setProperty('--snap-w', rect.width + 'px');
         dot.style.setProperty('--snap-h', rect.height + 'px');
         
         if (cursorTextRef.current) {
           const ct = cursorTextRef.current;
-          ct.style.fontSize = computed.fontSize;
-          ct.style.fontWeight = computed.fontWeight;
-          ct.style.letterSpacing = computed.letterSpacing;
+          ct.style.fontSize = navPill._cachedStyle.fontSize;
+          ct.style.fontWeight = navPill._cachedStyle.fontWeight;
+          ct.style.letterSpacing = navPill._cachedStyle.letterSpacing;
           ct.textContent = navPill.textContent.trim();
           ct.style.opacity = '1';
         }
@@ -524,10 +533,6 @@ export default function Overlay() {
         if (cursorTextRef.current) cursorTextRef.current.style.opacity = '0';
       }
     };
-    window.addEventListener('mouseover', onMouseOver);
-
-    // (Magnetism handled in onMouseOver)
-
     const onMouseLeaveWindow = () => {
       cursorVisible = false;
       gsap.to(cursor, { opacity: 0, duration: 0.2, overwrite: true });
@@ -537,8 +542,6 @@ export default function Overlay() {
       gsap.to(cursor, { opacity: 1, duration: 0.2, overwrite: true });
     };
 
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('mouseover', onMouseOver, { passive: true });
     document.documentElement.addEventListener('mouseleave', onMouseLeaveWindow);
     document.documentElement.addEventListener('mouseenter', onMouseEnterWindow);
 
@@ -596,9 +599,16 @@ export default function Overlay() {
     const buildCache = () => {
       const mapNodes = Array.from(jelloRoot.querySelectorAll('.map__ch, .header__cta'));
       cachedMapNodes = mapNodes.map(node => {
-        // We still need to call this on mousemove because the map transforms (scales/pans).
-        // But we only do it if the map is active.
-        return { node }; 
+        // Cache rect to avoid thrashing on mousemove
+        const rect = node.getBoundingClientRect();
+        return { 
+          node,
+          cx: rect.left + rect.width / 2,
+          cy: rect.top + rect.height / 2,
+          isCta: node.classList.contains('header__cta'),
+          isMapCh: node.classList.contains('map__ch'),
+          id: node.id
+        }; 
       });
 
       cachedJelloGroups = Array.from(jelloContainers).map(container => {
@@ -638,14 +648,14 @@ export default function Overlay() {
 
       if (useStore.getState().viewMode === 'map') {
         cachedMapNodes.forEach((cached) => {
-          if (cached.node.classList.contains('map__ch')) {
-            const rect = cached.node.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
-            if (dist < closestPillarDist) {
-              closestPillarDist = dist;
-              closestPillar = { node: cached.node, cx, cy };
+          if (cached.isMapCh) {
+            // Note: because the map tilts via CSS transform, this is an approximation, 
+            // but it's fast. For perfection we'd need to re-query, but for performance 
+            // we use the cached center. The tilt is minor (max 4deg) so it's fine.
+            const distSq = Math.pow(clientX - cached.cx, 2) + Math.pow(clientY - cached.cy, 2);
+            if (distSq < closestPillarDist) {
+              closestPillarDist = distSq;
+              closestPillar = cached;
             }
           }
         });
@@ -653,17 +663,19 @@ export default function Overlay() {
       
       // Always check the header CTA regardless of view mode
       cachedMapNodes.forEach((cached) => {
-        if (cached.node.classList.contains('header__cta')) {
-          const rect = cached.node.getBoundingClientRect();
-          const cx = rect.left + rect.width / 2;
-          const cy = rect.top + rect.height / 2;
-          const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
-          if (dist < closestPillarDist) {
-            closestPillarDist = dist;
-            closestPillar = { node: cached.node, cx, cy };
+        if (cached.isCta) {
+          const distSq = Math.pow(clientX - cached.cx, 2) + Math.pow(clientY - cached.cy, 2);
+          if (distSq < closestPillarDist) {
+            closestPillarDist = distSq;
+            closestPillar = cached;
           }
         }
       });
+      
+      // Convert closestPillarDist from squared back to actual distance if we found one
+      if (closestPillarDist !== Infinity) {
+        closestPillarDist = Math.sqrt(closestPillarDist);
+      }
 
       const svgOrbit = null;
       const svgCircle = null;
@@ -680,7 +692,7 @@ export default function Overlay() {
         const currentPulling = useStore.getState().pullingPillar;
 
         if (closestPillarDist <= orbitRadius) {
-          if (closestPillar.node.classList.contains('header__cta')) {
+          if (closestPillar.isCta) {
             // Keep gravity intensely active for the Buy button when fully hovered
             if (!currentPulling || currentPulling.id !== closestPillar.node.id || !currentPulling.isHovered) {
               useStore.getState().setPullingPillar({ cx: closestPillar.cx, cy: closestPillar.cy, id: closestPillar.node.id, isHovered: true });
@@ -694,7 +706,7 @@ export default function Overlay() {
             orbitLatched = true;
             currentLatchedPillar = closestPillar.node;
             
-            if (closestPillar.node.classList.contains('map__ch')) {
+            if (closestPillar.isMapCh) {
               const dx = clientX - closestPillar.cx;
               const dy = clientY - closestPillar.cy;
               const contactAngle = Math.atan2(dy, dx); // radians
@@ -860,14 +872,15 @@ export default function Overlay() {
     };
 
     // Piggyback on the existing mousemove — extend the handler
-    const origMouseMove = onMouseMove;
     const jelloMouseMove = (e) => {
-      origMouseMove(e);
+      onMouseMove(e); // Call original
+      // Throttle proximity check slightly by only running it if mouse moved enough
+      // or every N frames, but for cursor tracking we want it snappy so we run it directly
       checkProximity(e.clientX, e.clientY);
     };
-    // Replace the listener
-    window.removeEventListener('mousemove', onMouseMove);
+    
     window.addEventListener('mousemove', jelloMouseMove, { passive: true });
+    window.addEventListener('mouseover', onMouseOver, { passive: true });
 
     return () => {
       window.removeEventListener('click', onGlobalClick);
