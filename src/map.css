@@ -62,7 +62,7 @@
 }
 
 .map__ch:hover {
-  transform: translateY(-4px) scale(0.65);
+  transform: scale(0.65);
 }
 
 /* ── FOCUS / DEFOCUS STATES ──────────────────── */
@@ -135,6 +135,42 @@
   font-weight: 700;
   color: var(--dark);
   transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center center;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Jello Wave Interaction
+   The characters physically squish and bounce as they are hit.
+───────────────────────────────────────────────────────── */
+/* The core letter that gets hit directly */
+@keyframes char-jello-core {
+  0% { transform: scale(1) translateY(0); font-weight: 700; -webkit-text-stroke: 0px transparent; }
+  30% { transform: scale(1.05, 0.95) translateY(2px); font-weight: 900; -webkit-text-stroke: 1px var(--dark); letter-spacing: -0.01em; }
+  50% { transform: scale(0.97, 1.03) translateY(-1px); font-weight: 800; -webkit-text-stroke: 0.5px var(--dark); }
+  75% { transform: scale(1.01, 0.99) translateY(0.5px); }
+  100% { transform: scale(1) translateY(0); font-weight: 700; -webkit-text-stroke: 0px transparent; letter-spacing: 0em; }
+}
+
+/* The surrounding letters that ripple out to accommodate ink */
+@keyframes char-jello-ripple {
+  0% { transform: scale(1) translateY(0); font-weight: 700; -webkit-text-stroke: 0px transparent; }
+  30% { transform: scale(1.02, 0.98) translateY(1px); font-weight: 800; -webkit-text-stroke: 0.5px var(--dark); letter-spacing: -0.005em; }
+  50% { transform: scale(0.99, 1.01) translateY(-0.5px); font-weight: 750; -webkit-text-stroke: 0px transparent; }
+  75% { transform: scale(1.005, 0.995) translateY(0.2px); }
+  100% { transform: scale(1) translateY(0); font-weight: 700; -webkit-text-stroke: 0px transparent; letter-spacing: 0em; }
+}
+
+.ink-char {
+  display: inline-block;
+  transform-origin: bottom center;
+}
+
+.ink-char.ink-hit-core {
+  animation: char-jello-core 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ink-char.ink-hit-ripple {
+  animation: char-jello-ripple 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .map__ch-desc {

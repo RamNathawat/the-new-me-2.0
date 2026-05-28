@@ -133,16 +133,15 @@ const LOGOGRAMS = {
 };
 
 // Organic warp function applied to point coordinates based on mouse proximity
-function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transitionProgress) {
+function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time = 0) {
   // Global position of point
-  const gx = cx + px * scale;
-  const gy = cy + py * scale;
+  let gx = cx + px * scale;
+  let gy = cy + py * scale;
   
   if (isTransitioning) {
     // During transition, points fly outward from the center
-    const distFromCenter = Math.sqrt(px * px + py * py);
-    const angle = Math.atan2(py, px);
     const expandForce = transitionProgress * 1500;
+    const angle = Math.atan2(py, px);
     return {
       x: gx + Math.cos(angle) * expandForce,
       y: gy + Math.sin(angle) * expandForce
@@ -168,12 +167,22 @@ function getWarpedPoint(px, py, cx, cy, scale, mx, my, isTransitioning, transiti
 }
 
 // ─── Draw a logogram at a given progress ───
-function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTransitioning, transitionProgress) {
+function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTransitioning, transitionProgress, contactAngle, time) {
   ctx.save();
   // We do NOT translate the context, because we calculate absolute warped positions
 
   for (const s of strokes) {
-    let strokeProgress = Math.max(0, Math.min(1, (progress * 1.15 - s.order) / 0.15));
+    let dynamicOrder = s.order;
+    if (contactAngle !== undefined && contactAngle !== null) {
+      // Re-map the stroke order so it starts at the contact angle and flows in both directions
+      const strokeAngle = s.order * 2 * Math.PI;
+      let diff = Math.abs(strokeAngle - contactAngle);
+      diff = diff % (Math.PI * 2);
+      if (diff > Math.PI) diff = 2 * Math.PI - diff;
+      dynamicOrder = diff / Math.PI;
+    }
+
+    let strokeProgress = Math.max(0, Math.min(1, (progress * 1.15 - dynamicOrder) / 0.15));
     if (isTransitioning) strokeProgress = 1; // Fully drawn during transition
     if (strokeProgress <= 0) continue;
 
@@ -181,9 +190,9 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
     if (alpha <= 0) continue;
 
     if (s.type === 'arc') {
-      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
-      const p1 = getWarpedPoint(s.x1, s.y1, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
-      const pMid = getWarpedPoint(s.cx, s.cy, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const p1 = getWarpedPoint(s.x1, s.y1, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const pMid = getWarpedPoint(s.cx, s.cy, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
 
       ctx.beginPath();
       ctx.strokeStyle = color;
@@ -195,7 +204,7 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
       ctx.quadraticCurveTo(pMid.x, pMid.y, p1.x, p1.y);
       ctx.stroke();
     } else if (s.type === 'pool') {
-      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
       ctx.beginPath();
       ctx.fillStyle = color;
       ctx.globalAlpha = alpha * 0.85;
@@ -209,7 +218,7 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
       }
       ctx.fill();
     } else if (s.type === 'splatter') {
-      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const p = getWarpedPoint(s.x, s.y, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
       ctx.beginPath();
       ctx.fillStyle = color;
       ctx.globalAlpha = alpha * 0.65;
@@ -221,9 +230,9 @@ function drawLogogram(ctx, strokes, progress, cx, cy, color, scale, mx, my, isTr
       const tcx = s.x0 + (s.cx - s.x0) * strokeProgress;
       const tcy = s.y0 + (s.cy - s.y0) * strokeProgress;
       
-      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
-      const p1 = getWarpedPoint(tx, ty, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
-      const pMid = getWarpedPoint(tcx, tcy, cx, cy, scale, mx, my, isTransitioning, transitionProgress);
+      const p0 = getWarpedPoint(s.x0, s.y0, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const p1 = getWarpedPoint(tx, ty, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
+      const pMid = getWarpedPoint(tcx, tcy, cx, cy, scale, mx, my, isTransitioning, transitionProgress, time);
 
       ctx.beginPath();
       ctx.strokeStyle = color;
@@ -332,12 +341,15 @@ export default function InkCanvas() {
   const takeoverMasterpieceRef = useRef(null);
 
   const rafRef = useRef(null);
+  const contactAngleRef = useRef(0);
+  const particlesRef = useRef([]);
+  const lastHitTimesRef = useRef({});
+
+  const INK_COLOR = 'rgb(3, 8, 3)';
   const hoveredNode = useStore((state) => state.hoveredNode);
   const isMapVisible = useStore((state) => state.isMapVisible);
   const activePillar = useStore((state) => state.activePillar);
   const viewMode = useStore((state) => state.viewMode); // 'map', 'transition', 'takeover', 'retract'
-
-  const INK_COLOR = 'rgb(3, 8, 3)';
 
   // Mouse tracking
   useEffect(() => {
@@ -357,10 +369,10 @@ export default function InkCanvas() {
         const el = document.getElementById(hoveredNode);
         if (el) {
           const rect = el.getBoundingClientRect();
-          targetPosRef.current = {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2,
-          };
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          
+          targetPosRef.current = { x: cx, y: cy };
         }
       } else {
         targetProgressRef.current = 0;
@@ -435,6 +447,18 @@ export default function InkCanvas() {
       
       drawCx = currentPosRef.current.x;
       drawCy = currentPosRef.current.y;
+      
+      // Dynamic Angle Tracking for Liquid Retraction
+      if (activeLogogramRef.current) {
+        // Capture entry angle when we just start drawing
+        if (targetProgressRef.current === 1 && progressRef.current < 0.05) {
+          contactAngleRef.current = Math.atan2(dy, dx);
+        }
+        // Invisibly track exit angle while fully drawn
+        if (targetProgressRef.current === 1 && progressRef.current > 0.98) {
+          contactAngleRef.current = Math.atan2(dy, dx);
+        }
+      }
     } else if (viewMode === 'takeover' || viewMode === 'transition' || viewMode === 'retract') {
       // In takeover mode, the epicenter is on the right side of the screen
       const rightSideTargetX = w * 0.75;
@@ -463,8 +487,124 @@ export default function InkCanvas() {
       if (strokes && transitionProgressRef.current < 0.95) {
         drawLogogram(
           ctx, strokes, progressRef.current, drawCx, drawCy, INK_COLOR, scale, mx, my, 
-          isTransitioning, transitionProgressRef.current
+          isTransitioning, transitionProgressRef.current, contactAngleRef.current, timeRef.current
         );
+      }
+    }
+    
+    // Process Gravity Well Droplets
+    const currentPulling = useStore.getState().pullingPillar;
+    
+    // 1. Spawn new droplets from the cursor if being pulled but not latched
+    if (currentPulling && progressRef.current === 0) {
+       // Spawn randomly (1-2 droplets per frame)
+       if (Math.random() > 0.3) {
+          const dx = currentPulling.cx - mx;
+          const dy = currentPulling.cy - my;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist > 0) {
+             const angle = Math.atan2(dy, dx);
+             const speed = 1 + Math.random() * 3;
+             const spread = (Math.random() - 0.5) * 1.2; // slight chaotic ejection
+             particlesRef.current.push({
+                x: mx + (Math.random() - 0.5) * 12,
+                y: my + (Math.random() - 0.5) * 12,
+                vx: Math.cos(angle + spread) * speed,
+                vy: Math.sin(angle + spread) * speed,
+                target: currentPulling,
+                size: 3 + Math.random() * 5,
+                life: 1.0,
+                decay: 0.01 + Math.random() * 0.02
+             });
+          }
+       }
+    }
+
+    // 2. Process and draw all active droplets
+    if (particlesRef.current.length > 0) {
+      ctx.fillStyle = INK_COLOR;
+      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
+        const p = particlesRef.current[i];
+        
+        p.x += p.vx;
+        p.y += p.vy;
+        
+        // Gravity pull towards the pillar
+        if (p.target) {
+           const dx = p.target.cx - p.x;
+           const dy = p.target.cy - p.y;
+           const dist = Math.sqrt(dx * dx + dy * dy);
+           if (dist > 0) {
+              const pullForce = 80 / (dist + 20); // Acceleration increases as it gets closer
+              p.vx += (dx / dist) * pullForce;
+              p.vy += (dy / dist) * pullForce;
+           }
+           
+           if (dist < 60) {
+              if (!p.hit) {
+                 p.hit = true;
+                 if (p.target && p.target.id) {
+                    const now = performance.now();
+                    const lastHit = lastHitTimesRef.current[p.target.id] || 0;
+                    if (now - lastHit > 250) { // Throttle slightly less to allow rapid hits
+                       lastHitTimesRef.current[p.target.id] = now;
+                       
+                       const chars = Array.from(document.querySelectorAll(`#${p.target.id} .ink-char`));
+                       if (chars.length > 0) {
+                          // Find the closest letter to the droplet impact point
+                          let closestIdx = 0;
+                          let minCharDist = Infinity;
+                          chars.forEach((charEl, idx) => {
+                             const rect = charEl.getBoundingClientRect();
+                             const charCx = rect.left + rect.width / 2;
+                             const charCy = rect.top + rect.height / 2;
+                             const d = Math.hypot(p.x - charCx, p.y - charCy);
+                             if (d < minCharDist) {
+                                minCharDist = d;
+                                closestIdx = idx;
+                             }
+                          });
+
+                          // Trigger the wave outward from the closest letter
+                          const triggerAbsorb = (idx, delay, isCore) => {
+                             if (idx < 0 || idx >= chars.length) return;
+                             setTimeout(() => {
+                                const el = chars[idx];
+                                const className = isCore ? 'ink-hit-core' : 'ink-hit-ripple';
+                                el.classList.remove('ink-hit-core', 'ink-hit-ripple');
+                                void el.offsetWidth;
+                                el.classList.add(className);
+                             }, delay);
+                          };
+
+                          triggerAbsorb(closestIdx, 0, true);
+                          for (let w = 1; w <= 4; w++) {
+                             triggerAbsorb(closestIdx - w, w * 50, false); // Left ripple
+                             triggerAbsorb(closestIdx + w, w * 50, false); // Right ripple
+                          }
+                       }
+                    }
+                 }
+              }
+              p.life -= 0.15; // Rapid decay
+           }
+        }
+        
+        p.vx *= 0.92; // fluid friction
+        p.vy *= 0.92;
+        p.life -= p.decay;
+        
+        if (p.life <= 0) {
+          particlesRef.current.splice(i, 1);
+          continue;
+        }
+        
+        // Draw droplet
+        ctx.beginPath();
+        const currentSize = p.size * Math.pow(Math.max(0, p.life), 0.5); // non-linear shrink
+        ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 

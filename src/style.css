@@ -587,6 +587,15 @@ a { color:inherit; text-decoration:none; }
   }
 }
 
+/* Master Wrapper for Liquid Fusion */
+.gooey-wrapper {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10000;
+  filter: url('#goo');
+}
+
 .ink-cursor__dot {
   width: 28px;
   height: 28px;
@@ -636,11 +645,14 @@ a { color:inherit; text-decoration:none; }
   animation: none;
 }
 
-/* When snapping to a pillar — fade out so the InkCanvas ring is the visual */
+/* When snapping to a pillar — shrink and hide so the drawn orbit ring takes over */
 .ink-cursor__dot.is-ring {
+  transform: scale(0);
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.2s ease;
 }
+
+
 
 /* ── Jello Vertical Animation (from Portfolio reference) ── */
 @keyframes jello-vertical {

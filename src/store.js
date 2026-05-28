@@ -9,4 +9,8 @@ export const useStore = create((set) => ({
   setActivePillar: (pillar) => set({ activePillar: pillar }),
   viewMode: 'map', // 'map', 'transition', 'takeover', 'retract'
   setViewMode: (mode) => set({ viewMode: mode }),
+  contactAngle: 0,
+  setContactAngle: (angle) => set({ contactAngle: angle }),
+  pullingPillar: null,
+  setPullingPillar: (pillarCoords) => set({ pullingPillar: pillarCoords }),
 }))

@@ -11,6 +11,7 @@ export default function Overlay() {
   const setHoveredNode = useStore(state => state.setHoveredNode);
   const setActivePillar = useStore(state => state.setActivePillar);
   const setViewMode = useStore(state => state.setViewMode);
+  const setContactAngle = useStore(state => state.setContactAngle);
   
   const overlayRef = useRef(null);
   const takeoverRef = useRef(null);
@@ -82,6 +83,16 @@ export default function Overlay() {
 
     // Map bio-nodes interaction
     const mapNodes = document.querySelectorAll('.map__ch');
+    
+    // Split map text into individual characters for localized droplet physics
+    document.querySelectorAll('.map__ch-title').forEach(el => {
+      if (!el.classList.contains('splitted')) {
+        const text = el.innerText;
+        el.innerHTML = text.split('').map(c => `<span class="ink-char">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+        el.classList.add('splitted');
+      }
+    });
+    
     const mapTakeover = document.getElementById('map-takeover');
     const takeoverClose = document.getElementById('takeover-close');
     takeoverRef.current = mapTakeover;
@@ -105,16 +116,6 @@ export default function Overlay() {
         if (useStore.getState().viewMode !== 'map') return;
         setHoveredNode(node.id);
 
-        // Activate snapped state
-        isSnapped = true;
-        snapTarget = node;
-        if (cursorInner) {
-          cursorInner.classList.add('is-ring');
-        }
-
-        const mapCanvas = document.getElementById('map-canvas');
-        if (mapCanvas) mapCanvas.setAttribute('data-focused', node.id);
-
         // Camera zoom — scale up and translate toward the hovered word
         const rect = node.getBoundingClientRect();
         const vw = window.innerWidth;
@@ -136,13 +137,6 @@ export default function Overlay() {
         if (useStore.getState().viewMode !== 'map') return;
         setHoveredNode(null);
 
-        // Deactivate snapped state
-        isSnapped = false;
-        snapTarget = null;
-        if (cursorInner) {
-          cursorInner.classList.remove('is-ring');
-        }
-
         const mapCanvas = document.getElementById('map-canvas');
         if (mapCanvas) mapCanvas.removeAttribute('data-focused');
 
@@ -161,11 +155,9 @@ export default function Overlay() {
         if (currentMode !== 'map') return;
         
         // Deactivate cursor snapping immediately on click
-        isSnapped = false;
-        snapTarget = null;
-        if (cursorInner) {
-          cursorInner.classList.remove('is-ring');
-        }
+        orbitLatched = false;
+        currentLatchedPillar = null;
+        if (cursorInner) cursorInner.classList.remove('is-ring');
         
         const data = chapterData[node.id];
         if (!data) return;
@@ -313,8 +305,17 @@ export default function Overlay() {
     let cursorRafId = null;
 
     // Snap state
-    let snapCenterX = 0, snapCenterY = 0;
     let letterSnapCoords = null; // for text magnetism
+    
+    // Liquid Orbit state
+    let orbitSnapCoords = null;
+    let orbitLatched = false;
+    let currentLatchedPillar = null;
+    const orbitRadius = 85;
+    const orbitInfluence = 200;
+
+    // Cache map nodes for proximity calculation
+    const mapChNodes = Array.from(document.querySelectorAll('.map__ch'));
 
     // Set initial off-screen
     gsap.set(cursor, { x: mx, y: my, opacity: 0 });
@@ -331,15 +332,25 @@ export default function Overlay() {
     // ── Physics tick ──
     const cursorTick = () => {
       let targetX, targetY;
+      let distToPillar = 0;
 
-      if (isSnapped && snapTarget) {
-        const rect = snapTarget.getBoundingClientRect();
-        snapCenterX = rect.left + rect.width / 2;
-        snapCenterY = rect.top + rect.height / 2;
-        // Elastic rubber-band: snap to pillar center with slight drift toward mouse
-        const driftFactor = 0.08;
-        targetX = snapCenterX + (mx - snapCenterX) * driftFactor;
-        targetY = snapCenterY + (my - snapCenterY) * driftFactor;
+      if (orbitSnapCoords) {
+        // Liquid Magnetic Orbit: calculate distance to pillar center
+        const dx = orbitSnapCoords.x - cx;
+        const dy = orbitSnapCoords.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        distToPillar = dist;
+        const angle = Math.atan2(dy, dx);
+        
+        if (orbitLatched) {
+          // Anchor: lock strictly to the 85px orbital track
+          targetX = orbitSnapCoords.x - Math.cos(angle) * orbitRadius;
+          targetY = orbitSnapCoords.y - Math.sin(angle) * orbitRadius;
+        } else {
+          // Proximity Field: Still follows mouse, but stretch math will handle the viscous pull
+          targetX = mx;
+          targetY = my;
+        }
       } else if (letterSnapCoords) {
         // Magnetic letter gravity: strong pull to the letter center
         targetX = letterSnapCoords.x;
@@ -366,8 +377,22 @@ export default function Overlay() {
       let isTeardrop = false;
       let teardropSharpness = 50; // 50% is a circle
 
-      if (!isSnapped && letterSnapCoords) {
-        // Water Droplet stretch: stretch based on positional distance to target
+      if (orbitSnapCoords && !orbitLatched) {
+        // Liquid orbit stretch: stretch heavily towards the pillar as we approach
+        const dx = orbitSnapCoords.x - cx;
+        const dy = orbitSnapCoords.y - cy;
+        const angle = Math.atan2(dy, dx);
+        angleDeg = angle * (180 / Math.PI);
+        
+        // The closer we get, the stronger the stretch (0 at edge, 1.5 at center)
+        const pullFactor = Math.max(0, 1 - (distToPillar / orbitInfluence));
+        const stretchAmt = pullFactor * 1.5;
+        sX = 1 + stretchAmt;
+        sY = Math.max(1 - stretchAmt * 0.4, 0.4);
+        isTeardrop = true;
+        teardropSharpness = Math.max(50 - (stretchAmt * 30), 0);
+      } else if (letterSnapCoords) {
+        // Water Droplet stretch for letters
         const dx = letterSnapCoords.x - cx;
         const dy = letterSnapCoords.y - cy;
         const distToCenter = Math.sqrt(dx * dx + dy * dy);
@@ -375,21 +400,15 @@ export default function Overlay() {
         angleDeg = angle * (180 / Math.PI);
 
         if (distToCenter < 12) {
-          // Absorbed state: shrink into the letter
-          sX = 0;
-          sY = 0;
+          sX = 0; sY = 0;
         } else {
-          // Teardrop stretch: longer stretch the further it is
           const stretchAmt = Math.min(distToCenter / 20, 1.8);
           sX = 1 + stretchAmt;
-          sY = Math.max(1 - stretchAmt * 0.35, 0.3); // Prevent flattening to 0
-          
+          sY = Math.max(1 - stretchAmt * 0.35, 0.3);
           isTeardrop = true;
-          // Calculate sharpness for the front of the droplet (0% is a sharp point, 50% is round)
-          // The more it stretches, the sharper the point becomes
           teardropSharpness = Math.max(50 - (stretchAmt * 35), 0);
         }
-      } else if (!isSnapped) {
+      } else {
         // Normal velocity-based stretch
         const speed = Math.sqrt(vx * vx + vy * vy);
         const maxStretch = 0.35;
@@ -408,7 +427,7 @@ export default function Overlay() {
       // Apply position via translate3d (GPU) and stretch via rotate+scale on the dot
       cursor.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
 
-      if (!isSnapped) {
+      if (!orbitLatched) {
         dot.style.transform = `rotate(${angleDeg}deg) scale(${sX}, ${sY})`;
         
         if (isTeardrop) {
@@ -421,6 +440,7 @@ export default function Overlay() {
           dot.style.borderRadius = '';
         }
       } else {
+        // Clear transform when latched so CSS class .is-ring can scale it to 0
         dot.style.transform = '';
         dot.style.animationPlayState = 'running';
         dot.style.borderRadius = '';
@@ -504,59 +524,140 @@ export default function Overlay() {
       jelloState.set(el, { inside: false, tween: null });
     });
 
-    // Check jello hits on each mouse move (using proximity distance instead of bounding rect)
-    const checkJello = (clientX, clientY) => {
-      let closestLetter = null;
-      let minDistance = 80; // Larger magnetic snap radius for the water droplet stretch
+    // Check interactions on each mouse move
+    const checkProximity = (clientX, clientY) => {
+      
+      // 1. Check Pillars for Liquid Orbit
+      let closestPillarDist = Infinity;
+      let closestPillar = null;
 
-      jelloChars.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        
-        // Calculate distance from mouse to center of character
-        const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
-
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestLetter = el;
-          letterSnapCoords = { x: cx, y: cy };
-        }
-      });
-
-      // If no letter is close enough, release the magnetic lock
-      if (!closestLetter) {
-        letterSnapCoords = null;
+      if (useStore.getState().viewMode === 'map') {
+        mapChNodes.forEach((node) => {
+          const rect = node.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
+          if (dist < closestPillarDist) {
+            closestPillarDist = dist;
+            closestPillar = { node, cx, cy };
+          }
+        });
       }
 
-      jelloChars.forEach((el) => {
-        const state = jelloState.get(el);
-        const isClosest = el === closestLetter;
+      const svgOrbit = null;
+      const svgCircle = null;
 
-        if (isClosest && !state.inside) {
-          state.inside = true;
-          el.classList.add('is-active-char');
-          // Trigger jello on impact
-          if (state.tween) state.tween.kill();
-          state.tween = gsap.timeline()
-            .to(el, { scaleX: 0.75, scaleY: 1.25, duration: 0.27, ease: 'power2.out' })
-            .to(el, { scaleX: 1.25, scaleY: 0.75, duration: 0.09, ease: 'power1.inOut' })
-            .to(el, { scaleX: 0.85, scaleY: 1.15, duration: 0.09, ease: 'power1.inOut' })
-            .to(el, { scaleX: 1.05, scaleY: 0.95, duration: 0.135, ease: 'power1.inOut' })
-            .to(el, { scaleX: 0.95, scaleY: 1.05, duration: 0.09, ease: 'power1.inOut' })
-            .to(el, { scaleX: 1, scaleY: 1, duration: 0.225, ease: 'elastic.out(1, 0.5)' });
-        } else if (!isClosest && state.inside) {
-          state.inside = false;
-          el.classList.remove('is-active-char');
+      if (closestPillar && closestPillarDist < orbitInfluence) {
+        orbitSnapCoords = { x: closestPillar.cx, y: closestPillar.cy };
+        
+        // Adjust mapCanvas data-focused logic (previously handled by mouseenter)
+        const mapCanvas = document.getElementById('map-canvas');
+        if (mapCanvas && mapCanvas.getAttribute('data-focused') !== closestPillar.node.id) {
+            mapCanvas.setAttribute('data-focused', closestPillar.node.id);
         }
-      });
+
+        const currentPulling = useStore.getState().pullingPillar;
+
+        if (closestPillarDist <= orbitRadius) {
+          if (currentPulling) useStore.getState().setPullingPillar(null);
+
+          if (!orbitLatched || currentLatchedPillar !== closestPillar.node) {
+            orbitLatched = true;
+            currentLatchedPillar = closestPillar.node;
+            
+              const dx = clientX - closestPillar.cx;
+              const dy = clientY - closestPillar.cy;
+              const contactAngle = Math.atan2(dy, dx); // radians
+              setContactAngle(contactAngle);
+              
+              // Latch impact: Hide the cursor dot
+            if (cursorInner) cursorInner.classList.add('is-ring');
+          }
+        } else {
+          // Within influence zone, but unlatched (Gravity Well active)
+          if (!currentPulling || currentPulling.cx !== closestPillar.cx || currentPulling.cy !== closestPillar.cy) {
+            useStore.getState().setPullingPillar({ cx: closestPillar.cx, cy: closestPillar.cy, id: closestPillar.node.id });
+          }
+
+          if (orbitLatched) {
+             orbitLatched = false;
+             currentLatchedPillar = null;
+             if (cursorInner) cursorInner.classList.remove('is-ring');
+          }
+        }
+      } else {
+        // Outside influence zone completely
+        orbitSnapCoords = null;
+        
+        const currentPulling = useStore.getState().pullingPillar;
+        if (currentPulling) useStore.getState().setPullingPillar(null);
+
+        if (orbitLatched) {
+          orbitLatched = false;
+          currentLatchedPillar = null;
+          if (cursorInner) cursorInner.classList.remove('is-ring');
+        }
+        
+        // Remove data-focused if moving away from all pillars
+        const mapCanvas = document.getElementById('map-canvas');
+        if (mapCanvas && mapCanvas.hasAttribute('data-focused')) {
+            mapCanvas.removeAttribute('data-focused');
+        }
+      }
+
+      // 2. Check Letters (only if not influenced by a pillar)
+      if (orbitSnapCoords) {
+        letterSnapCoords = null;
+      } else {
+        let closestLetter = null;
+        let minDistance = 80;
+
+        jelloChars.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          
+          const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
+
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestLetter = el;
+            letterSnapCoords = { x: cx, y: cy };
+          }
+        });
+
+        if (!closestLetter) {
+          letterSnapCoords = null;
+        }
+
+        jelloChars.forEach((el) => {
+          const state = jelloState.get(el);
+          const isClosest = el === closestLetter;
+
+          if (isClosest && !state.inside) {
+            state.inside = true;
+            el.classList.add('is-active-char');
+            if (state.tween) state.tween.kill();
+            state.tween = gsap.timeline()
+              .to(el, { scaleX: 0.75, scaleY: 1.25, duration: 0.27, ease: 'power2.out' })
+              .to(el, { scaleX: 1.25, scaleY: 0.75, duration: 0.09, ease: 'power1.inOut' })
+              .to(el, { scaleX: 0.85, scaleY: 1.15, duration: 0.09, ease: 'power1.inOut' })
+              .to(el, { scaleX: 1.05, scaleY: 0.95, duration: 0.135, ease: 'power1.inOut' })
+              .to(el, { scaleX: 0.95, scaleY: 1.05, duration: 0.09, ease: 'power1.inOut' })
+              .to(el, { scaleX: 1, scaleY: 1, duration: 0.225, ease: 'elastic.out(1, 0.5)' });
+          } else if (!isClosest && state.inside) {
+            state.inside = false;
+            el.classList.remove('is-active-char');
+          }
+        });
+      }
     };
 
     // Piggyback on the existing mousemove — extend the handler
     const origMouseMove = onMouseMove;
     const jelloMouseMove = (e) => {
       origMouseMove(e);
-      checkJello(e.clientX, e.clientY);
+      checkProximity(e.clientX, e.clientY);
     };
     // Replace the listener
     window.removeEventListener('mousemove', onMouseMove);
@@ -577,9 +678,6 @@ export default function Overlay() {
       {/* Injecting the exact Vanilla HTML layout safely */}
       <div dangerouslySetInnerHTML={{ __html: layoutHTML }} />
 
-      {/* Arrival-style ink canvas — renders behind the map buttons */}
-      <InkCanvas />
-
       {/* Progress DNA Bar (Custom scrollbar as requested) */}
       <div id="dna-bar" style={{
         position: 'fixed', right: '1.5rem', top: '20%', height: '60%', width: '3px',
@@ -591,10 +689,22 @@ export default function Overlay() {
         }}></div>
       </div>
 
-      {/* Custom Ink Cursor */}
-      <div id="ink-cursor" ref={cursorRef}>
-        <div className="ink-cursor__dot" ref={cursorInnerRef}></div>
+      {/* Master Wrapper for Liquid Fusion */}
+      <div className="gooey-wrapper">
+        <InkCanvas />
+        <div id="ink-cursor" ref={cursorRef}>
+          <div className="ink-cursor__dot" ref={cursorInnerRef}></div>
+        </div>
       </div>
+      
+      {/* SVG Goo Filter Definition */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <filter id="goo">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+          <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo" />
+          <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+      </svg>
     </div>
   );
 }
