@@ -631,6 +631,10 @@ export default function Overlay() {
       });
 
       cachedJelloGroups = Array.from(jelloContainers).map(container => {
+        const crect = container.getBoundingClientRect();
+        const absoluteTop = crect.top + window.scrollY;
+        const absoluteLeft = crect.left + window.scrollX;
+        
         const chars = Array.from(container.querySelectorAll('.jello-char')).map(el => {
           return {
             el,
@@ -638,7 +642,7 @@ export default function Overlay() {
             cy: el.offsetTop + el.offsetHeight / 2
           };
         });
-        return { container, chars };
+        return { container, chars, absoluteTop, absoluteLeft, width: crect.width, height: crect.height };
       });
 
       // Cache the massive background text letters for repulsion
@@ -789,18 +793,25 @@ export default function Overlay() {
         let closestLetter = null;
         let minDistance = 80;
 
+        const scrollY = window.scrollY;
+        const scrollX = window.scrollX;
+
         cachedJelloGroups.forEach(group => {
-           const rect = group.container.getBoundingClientRect();
+           const rectLeft = group.absoluteLeft - scrollX;
+           const rectTop = group.absoluteTop - scrollY;
+           const rectRight = rectLeft + group.width;
+           const rectBottom = rectTop + group.height;
+
            // Broad phase check: is mouse near this container?
-           if (clientX < rect.left - 100 || clientX > rect.right + 100 || 
-               clientY < rect.top - 100 || clientY > rect.bottom + 100) {
+           if (clientX < rectLeft - 100 || clientX > rectRight + 100 || 
+               clientY < rectTop - 100 || clientY > rectBottom + 100) {
               return;
            }
            
            // Narrow phase: check each cached character
            group.chars.forEach(char => {
-              const cx = rect.left + char.cx;
-              const cy = rect.top + char.cy;
+              const cx = rectLeft + char.cx;
+              const cy = rectTop + char.cy;
               const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
 
               if (dist < minDistance) {
@@ -820,13 +831,10 @@ export default function Overlay() {
            if (window.previousClosestLetter && closestLetter) {
                const parent = closestLetter.parentElement;
                if (parent === window.previousClosestLetter.parentElement) {
-                 const rectA = window.previousClosestLetter.getBoundingClientRect();
-                 const rectB = closestLetter.getBoundingClientRect();
-                 
-                 const ax = rectA.left + rectA.width / 2;
-                 const ay = rectA.top + rectA.height / 2;
-                 const bx = rectB.left + rectB.width / 2;
-                 const by = rectB.top + rectB.height / 2;
+                 const ax = window.previousLetterCoords ? window.previousLetterCoords.x : letterSnapCoords.x;
+                 const ay = window.previousLetterCoords ? window.previousLetterCoords.y : letterSnapCoords.y;
+                 const bx = letterSnapCoords.x;
+                 const by = letterSnapCoords.y;
                  
                  const dist = Math.sqrt(Math.pow(bx - ax, 2) + Math.pow(by - ay, 2));
                  
@@ -875,6 +883,11 @@ export default function Overlay() {
                }
            }
            window.previousClosestLetter = closestLetter;
+        if (closestLetter) {
+          window.previousLetterCoords = { ...letterSnapCoords };
+        } else {
+          window.previousLetterCoords = null;
+        }
         }
 
         jelloChars.forEach((el) => {

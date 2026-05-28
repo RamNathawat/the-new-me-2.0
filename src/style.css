@@ -221,7 +221,7 @@ a { color:inherit; text-decoration:none; }
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, filter 0.3s ease, color 0.3s ease;
   position: relative;
   z-index: 50;
   text-decoration: none;
@@ -661,26 +661,25 @@ a { color:inherit; text-decoration:none; }
               border-radius 0.45s cubic-bezier(0.19, 1, 0.22, 1);
   border: 0px solid #141303;
   opacity: 0.92;
-  /* Organic ink blob shape — continuously morphing */
-  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  border-radius: 50%;
   animation: blobMorph 3s ease-in-out infinite alternate;
 }
 
 @keyframes blobMorph {
   0% {
-    border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+    transform: scale(1) rotate(0deg) skew(0deg, 0deg);
   }
   25% {
-    border-radius: 55% 45% 40% 60% / 45% 60% 40% 55%;
+    transform: scale(1.05, 0.95) rotate(15deg) skew(2deg, -2deg);
   }
   50% {
-    border-radius: 45% 55% 60% 40% / 60% 45% 55% 40%;
+    transform: scale(0.95, 1.05) rotate(45deg) skew(-2deg, 2deg);
   }
   75% {
-    border-radius: 60% 40% 45% 55% / 40% 55% 45% 60%;
+    transform: scale(1.02, 0.98) rotate(75deg) skew(1deg, -1deg);
   }
   100% {
-    border-radius: 50% 50% 50% 50% / 42% 58% 50% 50%;
+    transform: scale(0.98, 1.02) rotate(90deg) skew(-1deg, 1deg);
   }
 }
 
@@ -702,16 +701,16 @@ a { color:inherit; text-decoration:none; }
   margin: -20px 0 0 -20px;
   background: var(--dark);
   opacity: 1;
-  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  border-radius: 50%;
   animation: liquid-wobble 4s ease-in-out infinite;
   border: none;
 }
 
 @keyframes liquid-wobble {
-  0% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
-  33% { border-radius: 55% 45% 40% 60% / 45% 60% 55% 40%; }
-  66% { border-radius: 45% 55% 60% 40% / 60% 45% 40% 55%; }
-  100% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
+  0% { transform: scale(1) rotate(0deg); }
+  33% { transform: scale(1.1, 0.9) rotate(30deg); }
+  66% { transform: scale(0.9, 1.1) rotate(-15deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
 .ink-cursor__dot::after {
