@@ -17,6 +17,8 @@ export default function Overlay() {
   const takeoverRef = useRef(null);
   const cursorRef = useRef(null);
   const cursorInnerRef = useRef(null);
+  const cursorTextWrapperRef = useRef(null);
+  const cursorTextRef = useRef(null);
 
   useEffect(() => {
     if (!overlayRef.current) return;
@@ -369,6 +371,7 @@ export default function Overlay() {
         // Magnetic pull to the back button circle
         targetX = closeSnapCoords.x;
         targetY = closeSnapCoords.y;
+        orbitLatched = true;
       } else {
         targetX = mx;
         targetY = my;
@@ -448,6 +451,9 @@ export default function Overlay() {
 
       // Apply position via translate3d (GPU) and stretch via rotate+scale on the dot
       cursor.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+      if (cursorTextWrapperRef.current) {
+        cursorTextWrapperRef.current.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+      }
 
       if (!orbitLatched) {
         dot.style.transform = `rotate(${angleDeg}deg) scale(${sX}, ${sY})`;
@@ -478,23 +484,44 @@ export default function Overlay() {
       if (!dot) return;
       const t = e.target;
       const takeoverBtn = t ? t.closest('#takeover-close') : null;
+      const navPill = t ? t.closest('.nav-pill') : null;
       
       if (takeoverBtn) {
         dot.classList.add('is-close-btn');
-        dot.classList.remove('is-link');
+        dot.classList.remove('is-link', 'is-nav-pill');
         const circle = takeoverBtn.querySelector('.takeover__close-circle');
         if (circle) {
           const rect = circle.getBoundingClientRect();
           closeSnapCoords = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
         }
-      } else if (t && t.closest && t.closest('a, button, .nav-pill, .header__cta, .takeover__close, [role="button"]')) {
+      } else if (navPill) {
+        dot.classList.add('is-nav-pill');
+        dot.classList.remove('is-link', 'is-close-btn');
+        const rect = navPill.getBoundingClientRect();
+        closeSnapCoords = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        
+        // Pass exact dimensions and font styles to CSS variables
+        const computed = window.getComputedStyle(navPill);
+        dot.style.setProperty('--snap-w', rect.width + 'px');
+        dot.style.setProperty('--snap-h', rect.height + 'px');
+        
+        if (cursorTextRef.current) {
+          const ct = cursorTextRef.current;
+          ct.style.fontSize = computed.fontSize;
+          ct.style.fontWeight = computed.fontWeight;
+          ct.style.letterSpacing = computed.letterSpacing;
+          ct.textContent = navPill.textContent.trim();
+          ct.style.opacity = '1';
+        }
+      } else if (t && t.closest && t.closest('a, button, .header__cta, .takeover__close, [role="button"]')) {
         dot.classList.add('is-link');
-        dot.classList.remove('is-close-btn');
+        dot.classList.remove('is-close-btn', 'is-nav-pill');
         closeSnapCoords = null;
+        if (cursorTextRef.current) cursorTextRef.current.style.opacity = '0';
       } else {
-        dot.classList.remove('is-link');
-        dot.classList.remove('is-close-btn');
+        dot.classList.remove('is-link', 'is-close-btn', 'is-nav-pill');
         closeSnapCoords = null;
+        if (cursorTextRef.current) cursorTextRef.current.style.opacity = '0';
       }
     };
     window.addEventListener('mouseover', onMouseOver);
@@ -834,6 +861,18 @@ export default function Overlay() {
           <feComposite in="SourceGraphic" in2="goo" operator="atop" />
         </filter>
       </svg>
+
+      {/* Crisp text layer (outside the goo filter) */}
+      <div ref={cursorTextWrapperRef} style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: 10001 }}>
+        <div ref={cursorTextRef} style={{ 
+          transform: 'translate(-50%, -50%)', 
+          color: 'var(--white)', 
+          textTransform: 'uppercase', 
+          whiteSpace: 'nowrap',
+          opacity: 0,
+          transition: 'opacity 0.3s'
+        }}></div>
+      </div>
     </div>
   );
 }
