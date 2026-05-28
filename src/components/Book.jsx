@@ -13,6 +13,7 @@ const POSE = {
   side: { x: -1.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 },
   sideRight: { x: 0.85, y: 0.05, z: 0, rx: -0.04, ry: 0.15, rz: -0.03, sc: 0.75 },
   fill: { x: -28.0, y: 28.0, z: 1.5, rx: 0, ry: 0, rz: 0, sc: 42.0 }, // Zooming deep into a blank beige corner to create the Match Cut
+  authorStart: { x: -3.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 }, // Hidden offscreen left for the author entry
 };
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -36,6 +37,7 @@ export default function Book() {
     toSideRight: 0,
     toFill: 0,
     toMapFade: 0,
+    toAuthorStart: 0,
     toAuthor: 0,
   });
   
@@ -123,6 +125,13 @@ export default function Book() {
         }
       });
 
+      // Invisible transition from Fill to AuthorStart (happens while book is faded out)
+      ScrollTrigger.create({
+        trigger: '#s-map', start: 'top -20%', end: 'bottom 100%',
+        scrub: true,
+        onUpdate: (s) => { scrollState.current.toAuthorStart = s.progress; }
+      });
+
       // Book Author entry
       ScrollTrigger.create({
         trigger: '#s-author', start: 'top 90%', end: 'top 40%',
@@ -159,11 +168,12 @@ export default function Book() {
     mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
     mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
 
-    // Pose interpolation: hero → side → sideRight → fill → side(author)
+    // Pose interpolation: hero → side → sideRight → fill → authorStart → side(author)
     const atSide = lerpPose(POSE.hero, POSE.side, s.toSide);
     const atSideRight = lerpPose(atSide, POSE.sideRight, s.toSideRight);
     const atFill = lerpPose(atSideRight, POSE.fill, s.toFill);
-    let target = lerpPose(atFill, POSE.side, s.toAuthor);
+    const atAuthorStart = lerpPose(atFill, POSE.authorStart, s.toAuthorStart);
+    let target = lerpPose(atAuthorStart, POSE.side, s.toAuthor);
 
     // Add intro animation (jump + spin)
     target.y += introAnim.current.y;

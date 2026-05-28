@@ -299,8 +299,8 @@ export default function Overlay() {
     let mx = window.innerWidth / 2, my = window.innerHeight / 2; // raw mouse
     let cx = mx, cy = my;    // current rendered position
     let vx = 0, vy = 0;      // velocity
-    const spring = 0.12;     // spring stiffness (higher = snappier)
-    const damping = 0.72;    // velocity damping (lower = more momentum)
+    const spring = 0.15;     // slightly stiffer spring to pull back faster
+    const damping = 0.55;    // lower damping means more overshoot and wobble (jelly effect)
     let cursorVisible = false;
     let cursorRafId = null;
 
@@ -377,6 +377,11 @@ export default function Overlay() {
       let isTeardrop = false;
       let teardropSharpness = 50; // 50% is a circle
 
+      // Idle Breathing (pulsing scale)
+      const time = performance.now() * 0.003;
+      const breatheX = 1 + Math.sin(time) * 0.04;
+      const breatheY = 1 + Math.cos(time * 1.1) * 0.04;
+
       if (orbitSnapCoords && !orbitLatched) {
         // Liquid orbit stretch: stretch heavily towards the pillar as we approach
         const dx = orbitSnapCoords.x - cx;
@@ -387,36 +392,38 @@ export default function Overlay() {
         // The closer we get, the stronger the stretch (0 at edge, 1.5 at center)
         const pullFactor = Math.max(0, 1 - (distToPillar / orbitInfluence));
         const stretchAmt = pullFactor * 1.5;
-        sX = 1 + stretchAmt;
-        sY = Math.max(1 - stretchAmt * 0.4, 0.4);
+        sX = (1 + stretchAmt) * breatheX;
+        sY = Math.max(1 - stretchAmt * 0.4, 0.4) * breatheY;
         isTeardrop = true;
         teardropSharpness = Math.max(50 - (stretchAmt * 30), 0);
       } else if (letterSnapCoords) {
-        // Water Droplet stretch for letters
+        // Just snap position, no teardrop stretching
         const dx = letterSnapCoords.x - cx;
         const dy = letterSnapCoords.y - cy;
         const distToCenter = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx);
-        angleDeg = angle * (180 / Math.PI);
-
+        
         if (distToCenter < 12) {
           sX = 0; sY = 0;
         } else {
-          const stretchAmt = Math.min(distToCenter / 20, 1.8);
-          sX = 1 + stretchAmt;
-          sY = Math.max(1 - stretchAmt * 0.35, 0.3);
-          isTeardrop = true;
-          teardropSharpness = Math.max(50 - (stretchAmt * 35), 0);
+          sX = 1 * breatheX; 
+          sY = 1 * breatheY;
+          isTeardrop = false;
         }
       } else {
         // Normal velocity-based stretch
         const speed = Math.sqrt(vx * vx + vy * vy);
-        const maxStretch = 0.35;
-        const stretchAmt = Math.min(speed / 60, maxStretch);
+        const maxStretch = 0.45; // Increased max stretch for more fluid feel
+        const stretchAmt = Math.min(speed / 40, maxStretch); // Stretches easier at lower speeds
         const angle = Math.atan2(vy, vx);
         angleDeg = angle * (180 / Math.PI);
-        sX = 1 + stretchAmt;
-        sY = 1 - stretchAmt * 0.5;
+        
+        // Blend breathing out when moving fast
+        const idleBlend = Math.max(0, 1 - speed / 5);
+        const curBreatheX = 1 + (breatheX - 1) * idleBlend;
+        const curBreatheY = 1 + (breatheY - 1) * idleBlend;
+
+        sX = (1 + stretchAmt) * curBreatheX;
+        sY = (1 - stretchAmt * 0.5) * curBreatheY;
         
         if (speed > 10) {
            isTeardrop = true;
@@ -605,6 +612,11 @@ export default function Overlay() {
         }
       }
 
+      // Track previous letter to detect transitions
+      if (typeof window.previousClosestLetter === 'undefined') {
+        window.previousClosestLetter = null;
+      }
+
       // 2. Check Letters (only if not influenced by a pillar)
       if (orbitSnapCoords) {
         letterSnapCoords = null;
@@ -630,6 +642,68 @@ export default function Overlay() {
           letterSnapCoords = null;
         }
 
+        // Check if we moved from one letter to another
+        if (closestLetter !== window.previousClosestLetter) {
+           if (window.previousClosestLetter && closestLetter) {
+               const parent = closestLetter.parentElement;
+               if (parent === window.previousClosestLetter.parentElement) {
+                 const rectA = window.previousClosestLetter.getBoundingClientRect();
+                 const rectB = closestLetter.getBoundingClientRect();
+                 
+                 const ax = rectA.left + rectA.width / 2;
+                 const ay = rectA.top + rectA.height / 2;
+                 const bx = rectB.left + rectB.width / 2;
+                 const by = rectB.top + rectB.height / 2;
+                 
+                 const dist = Math.sqrt(Math.pow(bx - ax, 2) + Math.pow(by - ay, 2));
+                 
+                 const svg = document.getElementById('ink-veins');
+                 if (svg) {
+                    const drawVein = (ox1, oy1, ox2, oy2, width, duration, delay) => {
+                       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                       line.setAttribute('x1', ax + ox1);
+                       line.setAttribute('y1', ay + oy1);
+                       line.setAttribute('x2', bx + ox2);
+                       line.setAttribute('y2', by + oy2);
+                       line.setAttribute('stroke', '#0d1311');
+                       line.setAttribute('stroke-width', width);
+                       line.setAttribute('stroke-linecap', 'round');
+                       line.style.strokeDasharray = dist + 20;
+                       line.style.strokeDashoffset = dist + 20;
+                       svg.appendChild(line);
+                       
+                       gsap.to(line, {
+                          strokeDashoffset: 0,
+                          duration: duration,
+                          ease: 'power2.out',
+                          delay: delay,
+                          onComplete: () => {
+                             gsap.to(line, {
+                                strokeDashoffset: -(dist + 20),
+                                duration: duration,
+                                ease: 'power2.in',
+                                onComplete: () => line.remove()
+                             });
+                          }
+                       });
+                    };
+
+                    // Core thick vein (center)
+                    drawVein(0, 0, 0, 0, '6', 0.15, 0);
+                    // Top structural string
+                    drawVein(0, -12, 0, -8, '3', 0.18, 0.02);
+                    // Bottom structural string
+                    drawVein(0, 15, 0, 10, '2.5', 0.16, 0.04);
+                    // Chaotic micro-string 1
+                    drawVein(5, -20, -5, -15, '1.5', 0.22, 0.05);
+                    // Chaotic micro-string 2
+                    drawVein(-5, 20, 5, 25, '1', 0.25, 0.07);
+                 }
+               }
+           }
+           window.previousClosestLetter = closestLetter;
+        }
+
         jelloChars.forEach((el) => {
           const state = jelloState.get(el);
           const isClosest = el === closestLetter;
@@ -648,6 +722,8 @@ export default function Overlay() {
           } else if (!isClosest && state.inside) {
             state.inside = false;
             el.classList.remove('is-active-char');
+            if (state.tween) state.tween.kill();
+            state.tween = gsap.to(el, { scale: 1, duration: 0.3, ease: 'power2.out' });
           }
         });
       }
@@ -692,6 +768,7 @@ export default function Overlay() {
       {/* Master Wrapper for Liquid Fusion */}
       <div className="gooey-wrapper">
         <InkCanvas />
+        <svg id="ink-veins" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 14 }}></svg>
         <div id="ink-cursor" ref={cursorRef}>
           <div className="ink-cursor__dot" ref={cursorInnerRef}></div>
         </div>

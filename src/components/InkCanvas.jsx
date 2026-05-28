@@ -633,8 +633,8 @@ export default function InkCanvas() {
     rafRef.current = requestAnimationFrame(animate);
 
     return () => {
+      cancelAnimationFrame(rafRef.current);
       window.removeEventListener('resize', resize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [animate]);
 
