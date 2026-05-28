@@ -43,7 +43,7 @@ export default function Book() {
   const vel = useRef({ x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sc: 0 });
   const mouse = useRef({ x: 0, y: 0 });
   const mouseSmooth = useRef({ x: 0, y: 0 });
-  const introAnim = useRef({ y: 0, ry: Math.PI * -2 });
+  const introAnim = useRef({ y: -0.8, z: 3.5, rx: 0.15, ry: -0.4, sc: 1.5 });
 
   // Scroll velocity tracking
   const scrollVel = useRef(0);
@@ -104,26 +104,16 @@ export default function Book() {
   }, [scene])
 
   useLayoutEffect(() => {
-    // 360 spin jump animation on load
-    gsap.to(introAnim.current, {
-      ry: 0,
-      duration: 2.0,
-      ease: 'power3.inOut',
-      delay: 0.2
-    });
-    
-    gsap.to(introAnim.current, {
-      y: 1.2,
-      duration: 1.0,
-      ease: 'power2.out',
-      delay: 0.2
-    });
-    
+    // Cinematic Dolly-out reveal
     gsap.to(introAnim.current, {
       y: 0,
-      duration: 1.0,
-      ease: 'bounce.out',
-      delay: 1.2
+      z: 0,
+      rx: 0,
+      ry: 0,
+      sc: 0, // This will be ADDED to the base scale, so we want it to reach 0 extra scale
+      duration: 3.5,
+      ease: 'power3.out',
+      delay: 0.1
     });
 
     const ctx = gsap.context(() => {
@@ -215,9 +205,12 @@ export default function Book() {
     const atFill = lerpPose(atSideRight, POSE.fill, s.toFill);
     let target = lerpPose(atFill, POSE.side, s.toAuthor);
 
-    // Add intro animation (jump + spin)
+    // Add intro animation (cinematic dolly-out)
     target.y += introAnim.current.y;
+    target.z += introAnim.current.z;
+    target.rx += introAnim.current.rx;
     target.ry += introAnim.current.ry;
+    target.sc += introAnim.current.sc;
 
     // ── How "zoomed-in" are we? ──
     const fillAmt = s.toFill * (1 - s.toAuthor);

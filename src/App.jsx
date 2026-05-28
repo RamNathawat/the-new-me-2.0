@@ -67,6 +67,16 @@ export default function App() {
               <directionalLight position={[-6, 4, -3]} intensity={0.4} color="#D4E8DF" />
               <directionalLight position={[-2, -3, -8]} intensity={0.3} color="#FFE4CC" />
               <directionalLight position={[0, 12, 2]} intensity={0.2} color="#FFFFFF" />
+              {/* Soft atmospheric dust */}
+              <Sparkles 
+                count={80} 
+                scale={12} 
+                size={2.5} 
+                speed={0.2} 
+                opacity={0.15} 
+                color="#e2f3e5" 
+                noise={1}
+              />
               
               <Book />
               

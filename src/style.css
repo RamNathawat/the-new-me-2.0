@@ -361,11 +361,27 @@ a { color:inherit; text-decoration:none; }
   letter-spacing:.18em; color:var(--white); opacity:.55;
 }
 .scroll-cue__line {
-  width:1px; height:36px;
-  background:linear-gradient(to bottom, rgba(250,250,247,.45), transparent);
-  animation: pulse 2.2s ease-in-out infinite;
+  position: relative;
+  width:1px; height:45px;
+  background:linear-gradient(to bottom, rgba(250,250,247,.2), transparent);
 }
-@keyframes pulse { 0%,100% { transform:scaleY(.4); opacity:.25; } 50% { transform:scaleY(1); opacity:.7; } }
+.scroll-cue__line::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -1.5px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 0 4px var(--white);
+  animation: ink-drop 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes ink-drop {
+  0% { transform: translateY(-5px) scale(0.5); opacity: 0; }
+  10% { transform: translateY(0) scale(1.2); opacity: 1; }
+  60% { transform: translateY(25px) scale(0.8); opacity: 0.5; }
+  80% { transform: translateY(40px) scale(0.2); opacity: 0; }
+  100% { transform: translateY(40px) scale(0); opacity: 0; }
+}
 
 /* ═══════════════════════════════════════════════════
    STORY SECTIONS — Pinned, scroll-animated text

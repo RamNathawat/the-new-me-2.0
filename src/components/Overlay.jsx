@@ -52,11 +52,21 @@ export default function Overlay() {
     // Hero Ink Wipe Reveal
     const heroTl = gsap.timeline({ delay: 0.2 });
     
-    // The text reveal precisely wipes into view
+    // The text reveal precisely wipes into view while coalescing from liquid
     heroTl.fromTo('#hero-reveal', 
       { clipPath: 'inset(0 100% 0 0)' }, 
-      { clipPath: 'inset(0 0% 0 0)', duration: 2.2, ease: 'expo.inOut' }
+      { clipPath: 'inset(0 0% 0 0)', duration: 2.5, ease: 'expo.inOut' }
     );
+    
+    const heroText = document.getElementById('hero-text');
+    if (heroText) {
+      heroText.style.filter = 'url(#liquid-text)';
+      heroTl.fromTo('#liquid-disp',
+        { attr: { scale: 120 } },
+        { attr: { scale: 0 }, duration: 3.5, ease: 'power3.out' },
+        "-=2.5"
+      );
+    }
 
     // Scroll-driven parallax for the huge background text
     gsap.to('#hero-text', {
@@ -595,6 +605,7 @@ export default function Overlay() {
     // Cache for DOM nodes to avoid layout thrashing
     let cachedMapNodes = [];
     let cachedJelloGroups = [];
+    let cachedBgChars = [];
 
     const buildCache = () => {
       const mapNodes = Array.from(jelloRoot.querySelectorAll('.map__ch, .header__cta'));
@@ -620,6 +631,16 @@ export default function Overlay() {
           };
         });
         return { container, chars };
+      });
+
+      // Cache the massive background text letters for repulsion
+      cachedBgChars = Array.from(document.querySelectorAll('.bg-char')).map(el => {
+        const rect = el.getBoundingClientRect();
+        return {
+          el,
+          cx: rect.left + rect.width / 2,
+          cy: rect.top + rect.height / 2
+        };
       });
     };
 
@@ -877,6 +898,24 @@ export default function Overlay() {
       // Throttle proximity check slightly by only running it if mouse moved enough
       // or every N frames, but for cursor tracking we want it snappy so we run it directly
       checkProximity(e.clientX, e.clientY);
+      
+      // Dramatic parallax repulsion for background text
+      if (useStore.getState().viewMode === 'map') return; // Only run in scroll mode
+      
+      cachedBgChars.forEach(char => {
+        const dx = e.clientX - char.cx;
+        const dy = e.clientY - char.cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 350) {
+           const force = (350 - dist) / 350; // 0 to 1
+           const offsetX = (dx / dist) * -force * 25; // repel up to 25px
+           const offsetY = (dy / dist) * -force * 25;
+           gsap.to(char.el, { x: offsetX, y: offsetY, duration: 0.6, ease: 'power2.out', overwrite: 'auto' });
+        } else {
+           gsap.to(char.el, { x: 0, y: 0, duration: 0.8, ease: 'power2.out', overwrite: 'auto' });
+        }
+      });
     };
     
     window.addEventListener('mousemove', jelloMouseMove, { passive: true });
@@ -946,6 +985,10 @@ export default function Overlay() {
           <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
           <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="goo" />
           <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+        <filter id="liquid-text">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+          <feDisplacementMap id="liquid-disp" in="SourceGraphic" in2="noise" scale="50" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </svg>
 
