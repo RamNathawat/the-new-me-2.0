@@ -70,17 +70,6 @@ export default function App() {
               
               <Book />
               
-              {/* Soft shadow beneath the book for floating depth */}
-              <ContactShadows
-                position={[0, -1.3, 0]}
-                opacity={0.25}
-                scale={6}
-                blur={2}
-                far={4}
-                resolution={256}
-                color="#2a3a2e"
-              />
-              
               <EffectComposer multisampling={0}>
                 <Noise opacity={0.03} />
               </EffectComposer>
