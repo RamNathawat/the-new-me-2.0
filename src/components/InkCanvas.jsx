@@ -648,7 +648,7 @@ export default function InkCanvas() {
         left: 0,
         width: '100vw',
         height: '100vh',
-        pointerEvents: viewMode === 'takeover' ? 'auto' : 'none',
+        pointerEvents: 'none',
         zIndex: 15,
         opacity: isMapVisible ? 1 : 0,
         transition: 'opacity 0.5s ease',

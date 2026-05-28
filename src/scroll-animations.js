@@ -22,9 +22,9 @@ export function initScrollAnimations(bookScene) {
       gsap.to(word, {
         opacity: 1,
         y: 0,
-        duration: 0.8,
-        delay: i * 0.12,
-        ease: 'power3.out',
+        duration: 1.4,
+        delay: i * 0.15,
+        ease: 'expo.out',
         onStart: () => word.classList.add('is-visible')
       });
     });
@@ -33,12 +33,12 @@ export function initScrollAnimations(bookScene) {
   // Fade out atmosphere text and scroll hint as user scrolls
   gsap.to('.atmosphere__content', {
     opacity: 0,
-    y: -80,
+    y: -40,
     scrollTrigger: {
       trigger: '#section-atmosphere',
       start: 'top top',
       end: '60% top',
-      scrub: 1
+      scrub: 2.5
     }
   });
 
@@ -48,7 +48,7 @@ export function initScrollAnimations(bookScene) {
       trigger: '#section-atmosphere',
       start: '10% top',
       end: '30% top',
-      scrub: 1
+      scrub: 2
     }
   });
 
@@ -75,7 +75,7 @@ export function initScrollAnimations(bookScene) {
     trigger: '#section-book-reveal',
     start: 'top bottom',
     end: 'center center',
-    scrub: 1.5,
+    scrub: 2.5,
     onUpdate: (self) => {
       if (bookScene) bookScene.setBookReveal(self.progress);
     }
@@ -86,7 +86,7 @@ export function initScrollAnimations(bookScene) {
     trigger: '#section-book-reveal',
     start: 'center center',
     end: 'bottom top',
-    scrub: 1.5,
+    scrub: 2.5,
     onUpdate: (self) => {
       if (bookScene) bookScene.setPageSpread(self.progress * 0.4);
     }
@@ -95,8 +95,8 @@ export function initScrollAnimations(bookScene) {
   // ABOUT typography — parallax reveal
   gsap.fromTo('.about-letter', {
     opacity: 0,
-    y: 100,
-    scale: 0.9
+    y: 40,
+    scale: 0.95
   }, {
     opacity: 0.12,
     y: 0,
@@ -106,7 +106,7 @@ export function initScrollAnimations(bookScene) {
       trigger: '#section-book-reveal',
       start: 'top 60%',
       end: 'center center',
-      scrub: 1
+      scrub: 2
     }
   });
 
@@ -125,7 +125,7 @@ export function initScrollAnimations(bookScene) {
       trigger: '#section-author',
       start: 'top 80%',
       end: 'top 20%',
-      scrub: 1
+      scrub: 2
     }
   });
 
@@ -138,7 +138,7 @@ export function initScrollAnimations(bookScene) {
       trigger: '#section-author',
       start: 'top 80%',
       end: 'top 20%',
-      scrub: 1
+      scrub: 2
     }
   });
 
@@ -147,7 +147,7 @@ export function initScrollAnimations(bookScene) {
     trigger: '#section-author',
     start: 'top 60%',
     end: 'top top',
-    scrub: 1.5,
+    scrub: 2.5,
     onUpdate: (self) => {
       if (bookScene) bookScene.setAuthorPosition(self.progress);
     }
@@ -159,8 +159,8 @@ export function initScrollAnimations(bookScene) {
     gsap.to(el, {
       opacity: 1,
       y: 0,
-      duration: 1,
-      ease: 'power3.out',
+      duration: 1.4,
+      ease: 'expo.out',
       scrollTrigger: {
         trigger: el,
         start: 'top 85%',
@@ -177,8 +177,8 @@ export function initScrollAnimations(bookScene) {
     gsap.to(el, {
       opacity: 1,
       y: 0,
-      duration: 0.8,
-      ease: 'power3.out',
+      duration: 1.4,
+      ease: 'expo.out',
       scrollTrigger: {
         trigger: el,
         start: 'top 85%',
@@ -193,9 +193,9 @@ export function initScrollAnimations(bookScene) {
     gsap.to(card, {
       opacity: 1,
       y: 0,
-      duration: 0.8,
-      delay: i * 0.1,
-      ease: 'power3.out',
+      duration: 1.4,
+      delay: i * 0.12,
+      ease: 'expo.out',
       scrollTrigger: {
         trigger: '#section-gallery',
         start: 'top 70%',
@@ -218,7 +218,7 @@ export function initScrollAnimations(bookScene) {
             trigger: '#section-gallery',
             start: 'center center',
             end: `+=${scrollWidth}`,
-            scrub: 1,
+            scrub: 2,
             pin: true
           }
         });
@@ -233,7 +233,7 @@ export function initScrollAnimations(bookScene) {
       trigger: '#section-author',
       start: 'top center',
       end: 'top top',
-      scrub: 1
+      scrub: 2.5
     }
   });
 

@@ -40,7 +40,7 @@ export default function Overlay() {
     gsap.utils.toArray('.headline, .story__panel--b, .tr, .label').forEach((el) => {
       gsap.fromTo(el, 
         { filter: 'blur(12px)', opacity: 0, y: 30 },
-        { filter: 'blur(0px)', opacity: 1, y: 0, duration: 1.5, ease: 'power3.out', scrollTrigger: {
+        { filter: 'blur(0px)', opacity: 1, y: 0, duration: 1.8, ease: 'expo.out', scrollTrigger: {
           trigger: el,
           start: 'top 85%'
         }}
@@ -53,7 +53,7 @@ export default function Overlay() {
     // The text reveal precisely wipes into view
     heroTl.fromTo('#hero-reveal', 
       { clipPath: 'inset(0 100% 0 0)' }, 
-      { clipPath: 'inset(0 0% 0 0)', duration: 2.2, ease: 'power3.inOut' }
+      { clipPath: 'inset(0 0% 0 0)', duration: 2.2, ease: 'expo.inOut' }
     );
 
     // Scroll-driven parallax for the huge background text
@@ -65,7 +65,7 @@ export default function Overlay() {
         trigger: '#s-hero',
         start: 'top top',
         end: 'bottom top',
-        scrub: true
+        scrub: 2.5
       }
     });
 
@@ -77,7 +77,7 @@ export default function Overlay() {
         trigger: '#scroll-container',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: true
+        scrub: 2.5
       }
     });
 
@@ -170,6 +170,7 @@ export default function Overlay() {
         
         // Lock scroll
         document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
 
         // Set illustration image
         const imgMap = {
@@ -224,18 +225,22 @@ export default function Overlay() {
     });
 
     const closeTakeover = () => {
-      if (useStore.getState().viewMode !== 'takeover') return;
+      const currentMode = useStore.getState().viewMode;
+      if (currentMode !== 'takeover' && currentMode !== 'transition') return;
+      
       setViewMode('retract');
       
       // Release snapped state on close
       isSnapped = false;
       snapTarget = null;
+      closeSnapCoords = null;
       if (cursorInner) {
         cursorInner.classList.remove('is-ring');
       }
       
       // Unlock scroll
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
 
       // Fade map nodes and DNA bar back in
       gsap.to(['.map__ch', '#dna-bar'], { opacity: 1, pointerEvents: 'auto', duration: 0.8, delay: 0.2 });
@@ -273,9 +278,13 @@ export default function Overlay() {
       }, 300);
     };
 
-    if (takeoverClose) {
-      takeoverClose.addEventListener('click', closeTakeover);
-    }
+    // Delegate click to window to ensure it fires even if the button is within a complex stacking context
+    const onGlobalClick = (e) => {
+      if (e.target.closest('#takeover-close')) {
+        closeTakeover();
+      }
+    };
+    window.addEventListener('click', onGlobalClick);
 
     // Force close if user aggressively scrolls while locked
     const onWheel = (e) => {
@@ -299,13 +308,14 @@ export default function Overlay() {
     let mx = window.innerWidth / 2, my = window.innerHeight / 2; // raw mouse
     let cx = mx, cy = my;    // current rendered position
     let vx = 0, vy = 0;      // velocity
-    const spring = 0.15;     // slightly stiffer spring to pull back faster
-    const damping = 0.55;    // lower damping means more overshoot and wobble (jelly effect)
+    const spring = 0.1;      // Softer spring to reduce nervous energy
+    const damping = 0.75;    // Higher damping prevents overshooting and wobble
     let cursorVisible = false;
     let cursorRafId = null;
 
     // Snap state
     let letterSnapCoords = null; // for text magnetism
+    let closeSnapCoords = null;  // for back button magnetism
     
     // Liquid Orbit state
     let orbitSnapCoords = null;
@@ -355,6 +365,10 @@ export default function Overlay() {
         // Magnetic letter gravity: strong pull to the letter center
         targetX = letterSnapCoords.x;
         targetY = letterSnapCoords.y;
+      } else if (closeSnapCoords) {
+        // Magnetic pull to the back button circle
+        targetX = closeSnapCoords.x;
+        targetY = closeSnapCoords.y;
       } else {
         targetX = mx;
         targetY = my;
@@ -396,14 +410,20 @@ export default function Overlay() {
         sY = Math.max(1 - stretchAmt * 0.4, 0.4) * breatheY;
         isTeardrop = true;
         teardropSharpness = Math.max(50 - (stretchAmt * 30), 0);
-      } else if (letterSnapCoords) {
-        // Just snap position, no teardrop stretching
-        const dx = letterSnapCoords.x - cx;
-        const dy = letterSnapCoords.y - cy;
+      } else if (letterSnapCoords || closeSnapCoords) {
+        // Just snap position, no teardrop stretching for magnetic targets
+        const snapTarget = letterSnapCoords || closeSnapCoords;
+        const dx = snapTarget.x - cx;
+        const dy = snapTarget.y - cy;
         const distToCenter = Math.sqrt(dx * dx + dy * dy);
         
         if (distToCenter < 12) {
-          sX = 0; sY = 0;
+          sX = closeSnapCoords ? 1 : 0; 
+          sY = closeSnapCoords ? 1 : 0;
+          if (closeSnapCoords) {
+            sX *= breatheX;
+            sY *= breatheY;
+          }
         } else {
           sX = 1 * breatheX; 
           sY = 1 * breatheY;
@@ -461,12 +481,29 @@ export default function Overlay() {
     const onMouseOver = (e) => {
       if (!dot) return;
       const t = e.target;
-      if (t && t.closest && t.closest('a, button, .nav-pill, .header__cta, .takeover__close, [role="button"]')) {
+      const takeoverBtn = t ? t.closest('#takeover-close') : null;
+      
+      if (takeoverBtn) {
+        dot.classList.add('is-close-btn');
+        dot.classList.remove('is-link');
+        const circle = takeoverBtn.querySelector('.takeover__close-circle');
+        if (circle) {
+          const rect = circle.getBoundingClientRect();
+          closeSnapCoords = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }
+      } else if (t && t.closest && t.closest('a, button, .nav-pill, .header__cta, .takeover__close, [role="button"]')) {
         dot.classList.add('is-link');
+        dot.classList.remove('is-close-btn');
+        closeSnapCoords = null;
       } else {
         dot.classList.remove('is-link');
+        dot.classList.remove('is-close-btn');
+        closeSnapCoords = null;
       }
     };
+    window.addEventListener('mouseover', onMouseOver);
+
+    // (Magnetism handled in onMouseOver)
 
     const onMouseLeaveWindow = () => {
       cursorVisible = false;
@@ -713,12 +750,10 @@ export default function Overlay() {
             el.classList.add('is-active-char');
             if (state.tween) state.tween.kill();
             state.tween = gsap.timeline()
-              .to(el, { scaleX: 0.75, scaleY: 1.25, duration: 0.27, ease: 'power2.out' })
-              .to(el, { scaleX: 1.25, scaleY: 0.75, duration: 0.09, ease: 'power1.inOut' })
-              .to(el, { scaleX: 0.85, scaleY: 1.15, duration: 0.09, ease: 'power1.inOut' })
-              .to(el, { scaleX: 1.05, scaleY: 0.95, duration: 0.135, ease: 'power1.inOut' })
-              .to(el, { scaleX: 0.95, scaleY: 1.05, duration: 0.09, ease: 'power1.inOut' })
-              .to(el, { scaleX: 1, scaleY: 1, duration: 0.225, ease: 'elastic.out(1, 0.5)' });
+              .to(el, { scaleX: 0.92, scaleY: 1.08, duration: 0.35, ease: 'power2.out' })
+              .to(el, { scaleX: 1.04, scaleY: 0.96, duration: 0.15, ease: 'power1.inOut' })
+              .to(el, { scaleX: 0.98, scaleY: 1.02, duration: 0.15, ease: 'power1.inOut' })
+              .to(el, { scaleX: 1, scaleY: 1, duration: 0.35, ease: 'power2.out' });
           } else if (!isClosest && state.inside) {
             state.inside = false;
             el.classList.remove('is-active-char');
@@ -740,6 +775,7 @@ export default function Overlay() {
     window.addEventListener('mousemove', jelloMouseMove, { passive: true });
 
     return () => {
+      window.removeEventListener('click', onGlobalClick);
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('mousemove', jelloMouseMove);
       window.removeEventListener('mouseover', onMouseOver);
@@ -749,6 +785,26 @@ export default function Overlay() {
       jelloState.forEach((state) => { if (state.tween) state.tween.kill(); });
     };
   }, []);
+
+  // Strict scroll lock during takeover
+  useEffect(() => {
+    const killScroll = (e) => {
+      if (useStore.getState().viewMode === 'takeover') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    
+    // Bind at the capture phase to intercept before Lenis or any other listener gets it
+    window.addEventListener('wheel', killScroll, { passive: false, capture: true });
+    window.addEventListener('touchmove', killScroll, { passive: false, capture: true });
+    
+    return () => {
+      window.removeEventListener('wheel', killScroll, { capture: true });
+      window.removeEventListener('touchmove', killScroll, { capture: true });
+    };
+  }, []);
+
   return (
     <div className="overlay-wrapper" ref={overlayRef}>
       {/* Injecting the exact Vanilla HTML layout safely */}

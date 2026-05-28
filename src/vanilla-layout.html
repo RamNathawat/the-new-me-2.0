@@ -174,13 +174,25 @@
     </section>
 
     <!-- ════════════ CHAPTER FULL-SCREEN TAKEOVER (Hidden by default) ════════════ -->
-    <div class="map__takeover" id="map-takeover">
+    <div class="map__takeover" id="map-takeover" data-lenis-prevent>
       <!-- Background and floating ink artwork is rendered on the canvas underneath -->
       
       <!-- Grid layout for visual storytelling & typography -->
       <div class="takeover__grid">
         <!-- Content Panel: Left side, editorial and beautiful -->
         <div class="takeover__content">
+          <div class="takeover__close-wrapper" style="margin-bottom: 2rem;">
+            <button class="takeover__close" id="takeover-close" aria-label="Return to Map">
+              <div class="takeover__close-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </div>
+              <span class="takeover__close-text">Back to Map</span>
+            </button>
+          </div>
+
           <header class="takeover__header">
             <span class="takeover__num" id="takeover-num">01</span>
             <span class="takeover__category" id="takeover-category">Nutrition</span>
@@ -191,19 +203,6 @@
           
           <div class="takeover__body" id="takeover-body">
             <!-- Dynamic multi-paragraph details -->
-          </div>
-
-          <!-- Minimalist Close Button moved into the content stream to prevent overlap -->
-          <div style="margin-top: 3rem;">
-            <button class="takeover__close" id="takeover-close" aria-label="Return to Map">
-              <span class="takeover__close-text">Back to Map</span>
-              <div class="takeover__close-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </div>
-            </button>
           </div>
         </div>
         

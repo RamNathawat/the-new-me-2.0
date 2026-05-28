@@ -17,7 +17,7 @@
   --ff: 'Montserrat', 'Inter', system-ui, -apple-system, sans-serif;
   --fe: 'EB Garamond', 'Playfair Display', Georgia, serif;
 
-  --ease: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -141,17 +141,17 @@ a { color:inherit; text-decoration:none; }
 }
 @keyframes radial-drift-1 {
   0%, 100% { transform: translate(0, 0); }
-  33% { transform: translate(-40px, 30px); }
-  66% { transform: translate(20px, -20px); }
+  33% { transform: translate(-20px, 15px); }
+  66% { transform: translate(10px, -10px); }
 }
 @keyframes radial-drift-2 {
   0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(50px, -30px); }
+  50% { transform: translate(25px, -15px); }
 }
 @keyframes radial-drift-3 {
   0%, 100% { transform: translate(0, 0); }
-  40% { transform: translate(-30px, 20px); }
-  80% { transform: translate(25px, -35px); }
+  40% { transform: translate(-15px, 10px); }
+  80% { transform: translate(12px, -17px); }
 }
 
 /* ── Canvas ───────────────────────────────────── */
@@ -198,7 +198,7 @@ a { color:inherit; text-decoration:none; }
   box-shadow: 0 2px 16px rgba(0,0,0,.05);
   transition: transform .35s var(--ease), background .35s, box-shadow .35s;
 }
-.nav-pill:hover { transform:scale(1.04); box-shadow: 0 4px 22px rgba(0,0,0,.08); }
+.nav-pill:hover { transform:scale(1.02); box-shadow: 0 4px 22px rgba(0,0,0,.08); }
 
 .header__cta {
   display:flex; align-items:center; gap:.6rem;
@@ -212,7 +212,7 @@ a { color:inherit; text-decoration:none; }
   box-shadow: 0 2px 16px rgba(0,0,0,.05);
   transition: transform .35s var(--ease), background .35s, box-shadow .35s;
 }
-.header__cta:hover { transform:scale(1.04); background:var(--cream); box-shadow: 0 4px 22px rgba(0,0,0,.08); }
+.header__cta:hover { transform:scale(1.02); background:var(--cream); box-shadow: 0 4px 22px rgba(0,0,0,.08); }
 .header__cta-thumb {
   width:28px; height:36px;
   background: var(--sage-light);
@@ -286,17 +286,17 @@ a { color:inherit; text-decoration:none; }
 }
 @keyframes orb-drift-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(60px, -40px) scale(1.1); }
-  66% { transform: translate(-30px, 30px) scale(0.95); }
+  33% { transform: translate(30px, -20px) scale(1.04); }
+  66% { transform: translate(-15px, 15px) scale(0.98); }
 }
 @keyframes orb-drift-2 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-50px, -30px) scale(1.15); }
+  50% { transform: translate(-25px, -15px) scale(1.05); }
 }
 @keyframes orb-drift-3 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  40% { transform: translate(40px, 20px) scale(1.1); }
-  80% { transform: translate(-20px, -40px) scale(0.9); }
+  40% { transform: translate(20px, 10px) scale(1.04); }
+  80% { transform: translate(-10px, -20px) scale(0.96); }
 }
 
 /* Decorative ring */
@@ -312,7 +312,7 @@ a { color:inherit; text-decoration:none; }
 }
 @keyframes ring-breathe {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .06; }
-  50% { transform: translate(-50%, -50%) scale(1.12); opacity: .12; }
+  50% { transform: translate(-50%, -50%) scale(1.05); opacity: .1; }
 }
 
 /* Scroll cue */
@@ -417,10 +417,9 @@ a { color:inherit; text-decoration:none; }
   /* Use text-stroke for a smooth, animatable bolder effect that doesn't break layout */
   -webkit-text-stroke: 0px var(--dark);
   font-weight: 700;
-  transition: font-weight 0.2s var(--ease), -webkit-text-stroke 0.2s var(--ease);
+  transition: -webkit-text-stroke 0.2s var(--ease);
 }
 .jello-char.is-active-char {
-  font-weight: 900;
   -webkit-text-stroke: 1.5px var(--dark);
   color: var(--dark);
   text-shadow: none;
@@ -475,7 +474,7 @@ a { color:inherit; text-decoration:none; }
 }
 @keyframes author-ring-breathe {
   0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.08); opacity: 0.5; }
+  50% { transform: scale(1.04); opacity: 0.4; }
 }
 
 .author__quote {
@@ -499,7 +498,7 @@ a { color:inherit; text-decoration:none; }
   transition:transform 0.5s var(--ease),box-shadow 0.4s;
   text-decoration:none; margin-top:0.5rem;
 }
-.author__cta-btn:hover { transform:scale(1.06); box-shadow:0 8px 36px rgba(0,0,0,.14); }
+.author__cta-btn:hover { transform:scale(1.03); box-shadow:0 8px 36px rgba(0,0,0,.14); }
 .author__cta-arrow { width:18px; height:18px; transition:transform 0.5s var(--ease); }
 .author__cta-btn:hover .author__cta-arrow { transform:translateX(4px); }
 
@@ -643,6 +642,37 @@ a { color:inherit; text-decoration:none; }
   border: 2px solid #0a0f0a;
   border-radius: 50%;
   animation: none;
+}
+
+.ink-cursor__dot.is-close-btn {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  background: var(--dark);
+  opacity: 1;
+  border-radius: 50%;
+  animation: none;
+  border: none;
+}
+
+.ink-cursor__dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='19' y1='12' x2='5' y2='12'%3E%3C/line%3E%3Cpolyline points='12 19 5 12 12 5'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ink-cursor__dot.is-close-btn::after {
+  opacity: 1;
 }
 
 /* When snapping to a pillar — shrink and hide so the drawn orbit ring takes over */

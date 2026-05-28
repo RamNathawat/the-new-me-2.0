@@ -108,13 +108,13 @@ void main() {
   
   // --- Awwwards-Level Curl Noise Flow (Idle State) ---
   float flowFreq = 0.15;
-  float flowSpeed = 0.05; // Much slower and calmer
+  float flowSpeed = 0.03; // Much slower and calmer
   // Offset based on random phase so particles don't all clump identically
   vec3 curlPos = pos * flowFreq + aRandomPhase * 2.0;
   vec3 flow = curlNoise(curlPos + uTime * flowSpeed);
   
   // Apply flow field to base position
-  pos += flow * 0.6; // Less chaotic displacement
+  pos += flow * 0.4; // Less chaotic displacement
   
   // Calculate final target position based on shape weights (Hover State)
   vec3 targetPos = pos;
@@ -241,8 +241,8 @@ export function BioNetwork() {
   useFrame((state) => {
     if (lineRef.current) {
       // Gentle breathing/swaying of the network
-      lineRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.5;
-      lineRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.1) * 0.02;
+      lineRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.15) * 0.3;
+      lineRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.08) * 0.01;
     }
   });
 
@@ -405,10 +405,10 @@ export default function ParticleMap() {
     // Camera zoom when a node is actively hovered/clicked
     if (hoveredNode) {
       // Pull back to perfectly frame the large 3D structures
-      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 12.0, 0.04);
+      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 12.0, 0.025);
     } else {
       // Return to standard map view
-      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 5.0, 0.03);
+      state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, 5.0, 0.02);
     }
     
     // Slowly rotate the entire field

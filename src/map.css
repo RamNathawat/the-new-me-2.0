@@ -253,10 +253,10 @@
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   border-right: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 5rem 4.5rem;
+  padding: 3.5rem 4rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   z-index: 2;
   height: 100%;
   overflow-y: auto;
@@ -285,12 +285,12 @@
 
 .takeover__title {
   font-family: var(--fe);
-  font-size: clamp(3rem, 6vw, 5rem);
+  font-size: clamp(2.5rem, 4vw, 4rem);
   font-weight: 800;
   color: var(--dark);
   line-height: 1;
   margin-top: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   letter-spacing: -0.02em;
 }
 
@@ -298,7 +298,7 @@
   width: 40px;
   height: 3px;
   background: var(--sage);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .takeover__subtitle {
@@ -312,13 +312,13 @@
 
 .takeover__body {
   font-family: var(--ff);
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: var(--dark);
   opacity: 0.85;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: auto;
 }
 
@@ -330,10 +330,6 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  opacity: 0;
-  transform: translateY(20px);
-  /* we will animate opacity & transform via GSAP */
-  margin-bottom: 4rem; /* add extra bottom padding for scrolling */
 }
 
 .takeover__close-text {
@@ -357,9 +353,7 @@
 }
 
 .takeover__close:hover .takeover__close-circle {
-  background: var(--dark);
-  color: #fff;
-  transform: rotate(90deg);
+  transform: translateX(-4px);
 }
 
 /* Right side Illustration */

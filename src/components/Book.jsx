@@ -165,8 +165,8 @@ export default function Book() {
       }
     });
     
-    mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
-    mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
+    mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.03);
+    mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.03);
 
     // Pose interpolation: hero → side → sideRight → fill → authorStart → side(author)
     const atSide = lerpPose(POSE.hero, POSE.side, s.toSide);
@@ -182,11 +182,11 @@ export default function Book() {
     // Breathing
     const fillAmt = s.toFill * (1 - s.toAuthor);
     const fm = 1 - fillAmt * 0.7; // reduce breathing when zoomed in
-    target.x += Math.sin(t * 0.38 + 0.7) * 0.015 * fm;
-    target.y += Math.sin(t * 0.6) * 0.05 * fm;
-    target.ry += Math.sin(t * 0.22) * 0.02 * fm;
-    target.rx += Math.sin(t * 0.32 + 1.2) * 0.003 * fm;
-    target.rz += Math.sin(t * 0.18 + 2) * 0.002 * fm;
+    target.x += Math.sin(t * 0.38 + 0.7) * 0.01 * fm;
+    target.y += Math.sin(t * 0.6) * 0.03 * fm;
+    target.ry += Math.sin(t * 0.22) * 0.012 * fm;
+    target.rx += Math.sin(t * 0.32 + 1.2) * 0.002 * fm;
+    target.rz += Math.sin(t * 0.18 + 2) * 0.001 * fm;
 
     // Cursor
     const mx = mouseSmooth.current.x, my = mouseSmooth.current.y;
@@ -197,8 +197,8 @@ export default function Book() {
     target.y += my * -0.04 * hs;
 
     // Spring physics for a bouncy, elastic animation
-    const stiffness = 0.08;
-    const damping = 0.75; // Creates overshoot/bounce
+    const stiffness = 0.06;
+    const damping = 0.88; // Creates clean settling without overshoot
 
     vel.current.x += (target.x - cur.current.x) * stiffness;
     vel.current.y += (target.y - cur.current.y) * stiffness;
