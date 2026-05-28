@@ -8,8 +8,9 @@
   --sage-deep: #2D5A27; /* Vitality Green */
   --sage-light: #C5D86D; /* Avocado Lime */
   --cream: #F9F9F9;
+  --cream: #F9F9F9;
   --warm: #F9F9F9;
-  --dark: #1A1A1A;
+  --dark: #141303;
   --muted: #8A9690;
   --white: #FFFFFF;
   --accent-red: #E84D31; /* Tomato Red */
@@ -649,7 +650,7 @@ a { color:inherit; text-decoration:none; }
   width: 28px;
   height: 28px;
   margin: -14px 0 0 -14px;
-  background: #0a0f0a;
+  background: #141303;
   will-change: transform;
   transition: width 0.45s cubic-bezier(0.19, 1, 0.22, 1),
               height 0.45s cubic-bezier(0.19, 1, 0.22, 1),
@@ -658,7 +659,7 @@ a { color:inherit; text-decoration:none; }
               border 0.4s ease,
               opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1),
               border-radius 0.45s cubic-bezier(0.19, 1, 0.22, 1);
-  border: 0px solid #0a0f0a;
+  border: 0px solid #141303;
   opacity: 0.92;
   /* Organic ink blob shape — continuously morphing */
   border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
@@ -690,7 +691,7 @@ a { color:inherit; text-decoration:none; }
   margin: -26px 0 0 -26px;
   opacity: 0.6;
   background: transparent;
-  border: 2px solid #0a0f0a;
+  border: 2px solid #141303;
   border-radius: 50%;
   animation: none;
 }
