@@ -230,14 +230,20 @@ a { color:inherit; text-decoration:none; }
   background: var(--sage);
 }
 
-.hero__bg-text {
+.hero__bg-reveal {
   position: sticky; top: 0; height: 100vh;
+  pointer-events: none; z-index: 1;
+  overflow: hidden;
+  clip-path: inset(0 100% 0 0); /* Start hidden to the right */
+}
+
+.hero__bg-text {
   display: flex;
   align-items: center; justify-content: center;
-  pointer-events: none; z-index: 1;
+  height: 100%;
   line-height: .88;
-  overflow: hidden;
   padding: 0 2vw;
+  width: 100vw;
 }
 .bg-char {
   font-family: var(--ff);
@@ -406,6 +412,19 @@ a { color:inherit; text-decoration:none; }
   letter-spacing: -0.035em;
   color: var(--dark);
 }
+
+.jello-char {
+  /* Use text-stroke for a smooth, animatable bolder effect that doesn't break layout */
+  -webkit-text-stroke: 0px var(--dark);
+  font-weight: 700;
+  transition: font-weight 0.2s var(--ease), -webkit-text-stroke 0.2s var(--ease);
+}
+.jello-char.is-active-char {
+  font-weight: 900;
+  -webkit-text-stroke: 1.5px var(--dark);
+  color: var(--dark);
+  text-shadow: none;
+}
 .body {
   font-size: clamp(0.95rem, 1.3vw, 1.1rem);
   line-height: 1.8;
@@ -540,3 +559,113 @@ a { color:inherit; text-decoration:none; }
   background-color: var(--sage);
   transition: background-color 1.5s var(--ease);
 }
+
+/* ═══════════════════════════════════════════════════
+   FLUID INK CURSOR — Physics-driven, performance-first
+   ═══════════════════════════════════════════════════ */
+
+/* Custom Cursor global hide on desktop devices */
+@media (min-width: 1025px) {
+  body, a, button, [role="button"], input, select, textarea, .map__ch, .takeover__close {
+    cursor: none !important;
+  }
+}
+
+#ink-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 10000;
+  will-change: transform;
+  display: none;
+}
+
+@media (min-width: 1025px) {
+  #ink-cursor {
+    display: block;
+  }
+}
+
+.ink-cursor__dot {
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  background: #0a0f0a;
+  will-change: transform, opacity;
+  transition: width 0.45s cubic-bezier(0.19, 1, 0.22, 1),
+              height 0.45s cubic-bezier(0.19, 1, 0.22, 1),
+              margin 0.45s cubic-bezier(0.19, 1, 0.22, 1),
+              background 0.4s ease,
+              border 0.4s ease,
+              opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  border: 0px solid #0a0f0a;
+  opacity: 0.92;
+  /* Organic ink blob shape — continuously morphing */
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  animation: blobMorph 3s ease-in-out infinite alternate;
+}
+
+@keyframes blobMorph {
+  0% {
+    border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  }
+  25% {
+    border-radius: 55% 45% 40% 60% / 45% 60% 40% 55%;
+  }
+  50% {
+    border-radius: 45% 55% 60% 40% / 60% 45% 55% 40%;
+  }
+  75% {
+    border-radius: 60% 40% 45% 55% / 40% 55% 45% 60%;
+  }
+  100% {
+    border-radius: 50% 50% 50% 50% / 42% 58% 50% 50%;
+  }
+}
+
+/* When hovering interactive elements — hollow out slightly */
+.ink-cursor__dot.is-link {
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  opacity: 0.6;
+  background: transparent;
+  border: 2px solid #0a0f0a;
+  border-radius: 50%;
+  animation: none;
+}
+
+/* When snapping to a pillar — fade out so the InkCanvas ring is the visual */
+.ink-cursor__dot.is-ring {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+/* ── Jello Vertical Animation (from Portfolio reference) ── */
+@keyframes jello-vertical {
+  0%, 100% {
+    transform: scale3d(1, 1, 1);
+  }
+  30% {
+    transform: scale3d(0.75, 1.25, 1);
+  }
+  40% {
+    transform: scale3d(1.25, 0.75, 1);
+  }
+  50% {
+    transform: scale3d(0.85, 1.15, 1);
+  }
+  65% {
+    transform: scale3d(1.05, 0.95, 1);
+  }
+  75% {
+    transform: scale3d(0.95, 1.05, 1);
+  }
+}
+
+.jello-active {
+  animation: jello-vertical 0.9s both;
+}
+
+

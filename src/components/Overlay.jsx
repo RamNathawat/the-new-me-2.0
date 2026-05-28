@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useStore } from '../store';
-import { useGLTF } from '@react-three/drei';
 import layoutHTML from '../vanilla-layout.html?raw';
 import InkCanvas from './InkCanvas.jsx';
 
@@ -15,9 +14,16 @@ export default function Overlay() {
   
   const overlayRef = useRef(null);
   const takeoverRef = useRef(null);
+  const cursorRef = useRef(null);
+  const cursorInnerRef = useRef(null);
 
   useEffect(() => {
     if (!overlayRef.current) return;
+
+    // Custom ink cursor snap states
+    let isSnapped = false;
+    let snapTarget = null;
+    const cursorInner = cursorInnerRef.current;
 
     // Remove the intro loader immediately since we are in dev/R3F now
     const loader = document.getElementById('loader');
@@ -40,19 +46,27 @@ export default function Overlay() {
       );
     });
 
-    // Hero Background Text - Swipe in from right, transition from white to sage-deep
-    gsap.fromTo('.bg-char',
-      { x: 300, color: '#FFFFFF', opacity: 0 },
-      {
-        x: 0,
-        color: '#2D5A27', // sage-deep
-        opacity: 0.08,
-        duration: 2.5,
-        stagger: 0.15,
-        ease: 'power4.out',
-        delay: 0.5
-      }
+    // Hero Ink Wipe Reveal
+    const heroTl = gsap.timeline({ delay: 0.2 });
+    
+    // The text reveal precisely wipes into view
+    heroTl.fromTo('#hero-reveal', 
+      { clipPath: 'inset(0 100% 0 0)' }, 
+      { clipPath: 'inset(0 0% 0 0)', duration: 2.2, ease: 'power3.inOut' }
     );
+
+    // Scroll-driven parallax for the huge background text
+    gsap.to('#hero-text', {
+      x: '-30vw',
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#s-hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
 
     // DNA scrollbar logic
     gsap.to('#dna-fill', {
@@ -91,6 +105,13 @@ export default function Overlay() {
         if (useStore.getState().viewMode !== 'map') return;
         setHoveredNode(node.id);
 
+        // Activate snapped state
+        isSnapped = true;
+        snapTarget = node;
+        if (cursorInner) {
+          cursorInner.classList.add('is-ring');
+        }
+
         const mapCanvas = document.getElementById('map-canvas');
         if (mapCanvas) mapCanvas.setAttribute('data-focused', node.id);
 
@@ -115,6 +136,13 @@ export default function Overlay() {
         if (useStore.getState().viewMode !== 'map') return;
         setHoveredNode(null);
 
+        // Deactivate snapped state
+        isSnapped = false;
+        snapTarget = null;
+        if (cursorInner) {
+          cursorInner.classList.remove('is-ring');
+        }
+
         const mapCanvas = document.getElementById('map-canvas');
         if (mapCanvas) mapCanvas.removeAttribute('data-focused');
 
@@ -131,6 +159,13 @@ export default function Overlay() {
       node.addEventListener('click', () => {
         const currentMode = useStore.getState().viewMode;
         if (currentMode !== 'map') return;
+        
+        // Deactivate cursor snapping immediately on click
+        isSnapped = false;
+        snapTarget = null;
+        if (cursorInner) {
+          cursorInner.classList.remove('is-ring');
+        }
         
         const data = chapterData[node.id];
         if (!data) return;
@@ -200,6 +235,13 @@ export default function Overlay() {
       if (useStore.getState().viewMode !== 'takeover') return;
       setViewMode('retract');
       
+      // Release snapped state on close
+      isSnapped = false;
+      snapTarget = null;
+      if (cursorInner) {
+        cursorInner.classList.remove('is-ring');
+      }
+      
       // Unlock scroll
       document.body.style.overflow = '';
 
@@ -251,9 +293,283 @@ export default function Overlay() {
       }
     };
     window.addEventListener('wheel', onWheel, { passive: true });
-    
+
+    // ═══════════════════════════════════════════════════
+    // PHYSICS-BASED INK CURSOR
+    // ═══════════════════════════════════════════════════
+    const cursor = cursorRef.current;
+    const dot = cursorInnerRef.current;
+    if (!cursor || !dot) {
+      return () => { window.removeEventListener('wheel', onWheel); };
+    }
+
+    // Physics state
+    let mx = window.innerWidth / 2, my = window.innerHeight / 2; // raw mouse
+    let cx = mx, cy = my;    // current rendered position
+    let vx = 0, vy = 0;      // velocity
+    const spring = 0.12;     // spring stiffness (higher = snappier)
+    const damping = 0.72;    // velocity damping (lower = more momentum)
+    let cursorVisible = false;
+    let cursorRafId = null;
+
+    // Snap state
+    let snapCenterX = 0, snapCenterY = 0;
+    let letterSnapCoords = null; // for text magnetism
+
+    // Set initial off-screen
+    gsap.set(cursor, { x: mx, y: my, opacity: 0 });
+
+    const onMouseMove = (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+      if (!cursorVisible) {
+        cursorVisible = true;
+        gsap.to(cursor, { opacity: 1, duration: 0.25, overwrite: true });
+      }
+    };
+
+    // ── Physics tick ──
+    const cursorTick = () => {
+      let targetX, targetY;
+
+      if (isSnapped && snapTarget) {
+        const rect = snapTarget.getBoundingClientRect();
+        snapCenterX = rect.left + rect.width / 2;
+        snapCenterY = rect.top + rect.height / 2;
+        // Elastic rubber-band: snap to pillar center with slight drift toward mouse
+        const driftFactor = 0.08;
+        targetX = snapCenterX + (mx - snapCenterX) * driftFactor;
+        targetY = snapCenterY + (my - snapCenterY) * driftFactor;
+      } else if (letterSnapCoords) {
+        // Magnetic letter gravity: strong pull to the letter center
+        targetX = letterSnapCoords.x;
+        targetY = letterSnapCoords.y;
+      } else {
+        targetX = mx;
+        targetY = my;
+      }
+
+      // Spring physics
+      const ax = (targetX - cx) * spring;
+      const ay = (targetY - cy) * spring;
+      vx += ax;
+      vy += ay;
+      vx *= damping;
+      vy *= damping;
+      cx += vx;
+      cy += vy;
+
+      // Stretch calculation
+      let angleDeg = 0;
+      let sX = 1;
+      let sY = 1;
+      let isTeardrop = false;
+      let teardropSharpness = 50; // 50% is a circle
+
+      if (!isSnapped && letterSnapCoords) {
+        // Water Droplet stretch: stretch based on positional distance to target
+        const dx = letterSnapCoords.x - cx;
+        const dy = letterSnapCoords.y - cy;
+        const distToCenter = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        angleDeg = angle * (180 / Math.PI);
+
+        if (distToCenter < 12) {
+          // Absorbed state: shrink into the letter
+          sX = 0;
+          sY = 0;
+        } else {
+          // Teardrop stretch: longer stretch the further it is
+          const stretchAmt = Math.min(distToCenter / 20, 1.8);
+          sX = 1 + stretchAmt;
+          sY = Math.max(1 - stretchAmt * 0.35, 0.3); // Prevent flattening to 0
+          
+          isTeardrop = true;
+          // Calculate sharpness for the front of the droplet (0% is a sharp point, 50% is round)
+          // The more it stretches, the sharper the point becomes
+          teardropSharpness = Math.max(50 - (stretchAmt * 35), 0);
+        }
+      } else if (!isSnapped) {
+        // Normal velocity-based stretch
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        const maxStretch = 0.35;
+        const stretchAmt = Math.min(speed / 60, maxStretch);
+        const angle = Math.atan2(vy, vx);
+        angleDeg = angle * (180 / Math.PI);
+        sX = 1 + stretchAmt;
+        sY = 1 - stretchAmt * 0.5;
+        
+        if (speed > 10) {
+           isTeardrop = true;
+           teardropSharpness = Math.max(50 - (stretchAmt * 80), 15);
+        }
+      }
+
+      // Apply position via translate3d (GPU) and stretch via rotate+scale on the dot
+      cursor.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+
+      if (!isSnapped) {
+        dot.style.transform = `rotate(${angleDeg}deg) scale(${sX}, ${sY})`;
+        
+        if (isTeardrop) {
+          // Pause CSS animation and force teardrop shape pointing forward
+          dot.style.animationPlayState = 'paused';
+          dot.style.borderRadius = `50% ${teardropSharpness}% ${teardropSharpness}% 50%`;
+        } else {
+          // Revert to CSS blob morphing
+          dot.style.animationPlayState = 'running';
+          dot.style.borderRadius = '';
+        }
+      } else {
+        dot.style.transform = '';
+        dot.style.animationPlayState = 'running';
+        dot.style.borderRadius = '';
+      }
+
+      cursorRafId = requestAnimationFrame(cursorTick);
+    };
+    cursorRafId = requestAnimationFrame(cursorTick);
+
+    // ── Hover detection (links/buttons) ──
+    const onMouseOver = (e) => {
+      if (!dot) return;
+      const t = e.target;
+      if (t && t.closest && t.closest('a, button, .nav-pill, .header__cta, .takeover__close, [role="button"]')) {
+        dot.classList.add('is-link');
+      } else {
+        dot.classList.remove('is-link');
+      }
+    };
+
+    const onMouseLeaveWindow = () => {
+      cursorVisible = false;
+      gsap.to(cursor, { opacity: 0, duration: 0.2, overwrite: true });
+    };
+    const onMouseEnterWindow = () => {
+      cursorVisible = true;
+      gsap.to(cursor, { opacity: 1, duration: 0.2, overwrite: true });
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('mouseover', onMouseOver, { passive: true });
+    document.documentElement.addEventListener('mouseleave', onMouseLeaveWindow);
+    document.documentElement.addEventListener('mouseenter', onMouseEnterWindow);
+
+    // ═══════════════════════════════════════════════════
+    // JELLO TEXT INTERACTION (Portfolio-style, per-letter)
+    // Split text into individual char spans, then hit-test each
+    // ═══════════════════════════════════════════════════
+    const jelloRoot = overlayRef.current;
+    const jelloContainers = jelloRoot.querySelectorAll('.headline, .label');
+
+    // Split each container's text into per-character spans
+    jelloContainers.forEach((el) => {
+      // Don't re-split if already done
+      if (el.dataset.jelloSplit) return;
+      el.dataset.jelloSplit = '1';
+
+      const fragment = document.createDocumentFragment();
+      // Walk childNodes to preserve <br> tags
+      el.childNodes.forEach((child) => {
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === 'BR') {
+          fragment.appendChild(child.cloneNode());
+        } else if (child.nodeType === Node.TEXT_NODE) {
+          const text = child.textContent;
+          for (const ch of text) {
+            if (ch === ' ') {
+              // Non-breaking space wrapper
+              const sp = document.createElement('span');
+              sp.textContent = '\u00A0';
+              sp.style.display = 'inline-block';
+              fragment.appendChild(sp);
+            } else {
+              const span = document.createElement('span');
+              span.textContent = ch;
+              span.className = 'jello-char';
+              span.style.display = 'inline-block';
+              fragment.appendChild(span);
+            }
+          }
+        }
+      });
+      el.textContent = '';
+      el.appendChild(fragment);
+    });
+
+    // Now target every .jello-char for hit-testing
+    const jelloChars = jelloRoot.querySelectorAll('.jello-char');
+    const jelloState = new Map();
+
+    jelloChars.forEach((el) => {
+      jelloState.set(el, { inside: false, tween: null });
+    });
+
+    // Check jello hits on each mouse move (using proximity distance instead of bounding rect)
+    const checkJello = (clientX, clientY) => {
+      let closestLetter = null;
+      let minDistance = 80; // Larger magnetic snap radius for the water droplet stretch
+
+      jelloChars.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        
+        // Calculate distance from mouse to center of character
+        const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
+
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestLetter = el;
+          letterSnapCoords = { x: cx, y: cy };
+        }
+      });
+
+      // If no letter is close enough, release the magnetic lock
+      if (!closestLetter) {
+        letterSnapCoords = null;
+      }
+
+      jelloChars.forEach((el) => {
+        const state = jelloState.get(el);
+        const isClosest = el === closestLetter;
+
+        if (isClosest && !state.inside) {
+          state.inside = true;
+          el.classList.add('is-active-char');
+          // Trigger jello on impact
+          if (state.tween) state.tween.kill();
+          state.tween = gsap.timeline()
+            .to(el, { scaleX: 0.75, scaleY: 1.25, duration: 0.27, ease: 'power2.out' })
+            .to(el, { scaleX: 1.25, scaleY: 0.75, duration: 0.09, ease: 'power1.inOut' })
+            .to(el, { scaleX: 0.85, scaleY: 1.15, duration: 0.09, ease: 'power1.inOut' })
+            .to(el, { scaleX: 1.05, scaleY: 0.95, duration: 0.135, ease: 'power1.inOut' })
+            .to(el, { scaleX: 0.95, scaleY: 1.05, duration: 0.09, ease: 'power1.inOut' })
+            .to(el, { scaleX: 1, scaleY: 1, duration: 0.225, ease: 'elastic.out(1, 0.5)' });
+        } else if (!isClosest && state.inside) {
+          state.inside = false;
+          el.classList.remove('is-active-char');
+        }
+      });
+    };
+
+    // Piggyback on the existing mousemove — extend the handler
+    const origMouseMove = onMouseMove;
+    const jelloMouseMove = (e) => {
+      origMouseMove(e);
+      checkJello(e.clientX, e.clientY);
+    };
+    // Replace the listener
+    window.removeEventListener('mousemove', onMouseMove);
+    window.addEventListener('mousemove', jelloMouseMove, { passive: true });
+
     return () => {
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('mousemove', jelloMouseMove);
+      window.removeEventListener('mouseover', onMouseOver);
+      document.documentElement.removeEventListener('mouseleave', onMouseLeaveWindow);
+      document.documentElement.removeEventListener('mouseenter', onMouseEnterWindow);
+      if (cursorRafId) cancelAnimationFrame(cursorRafId);
+      jelloState.forEach((state) => { if (state.tween) state.tween.kill(); });
     };
   }, []);
   return (
@@ -273,6 +589,11 @@ export default function Overlay() {
           width: '100%', backgroundColor: '#2D5A27', height: '0%',
           boxShadow: '0 0 10px #2D5A27'
         }}></div>
+      </div>
+
+      {/* Custom Ink Cursor */}
+      <div id="ink-cursor" ref={cursorRef}>
+        <div className="ink-cursor__dot" ref={cursorInnerRef}></div>
       </div>
     </div>
   );
