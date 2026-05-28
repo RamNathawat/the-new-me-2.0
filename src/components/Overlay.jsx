@@ -63,7 +63,15 @@ export default function Overlay() {
       heroText.style.filter = 'url(#liquid-text)';
       heroTl.fromTo('#liquid-disp',
         { attr: { scale: 120 } },
-        { attr: { scale: 0 }, duration: 3.5, ease: 'power3.out' },
+        { 
+          attr: { scale: 0 }, 
+          duration: 3.5, 
+          ease: 'power3.out',
+          onComplete: () => {
+            // CRITICAL PERF FIX: Remove the expensive SVG filter after animation finishes
+            heroText.style.filter = 'none';
+          }
+        },
         "-=2.5"
       );
     }
