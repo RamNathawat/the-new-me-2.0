@@ -330,6 +330,15 @@
   border: none;
   cursor: pointer;
   padding: 0;
+  position: relative;
+}
+
+/* Expanded Hitbox for eager hover detection */
+.takeover__close::before {
+  content: "";
+  position: absolute;
+  inset: -1.5rem;
+  z-index: -1;
 }
 
 .takeover__close-text {
@@ -344,12 +353,20 @@
 .takeover__close-circle {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
   border: 1px solid rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s var(--ease);
+  animation: liquid-wobble 4s ease-in-out infinite;
+}
+
+@keyframes liquid-wobble {
+  0% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
+  33% { border-radius: 55% 45% 40% 60% / 45% 60% 55% 40%; }
+  66% { border-radius: 45% 55% 60% 40% / 60% 45% 40% 55%; }
+  100% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
 }
 
 .takeover__close:hover .takeover__close-circle {

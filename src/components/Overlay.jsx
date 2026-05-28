@@ -410,26 +410,21 @@ export default function Overlay() {
         sY = Math.max(1 - stretchAmt * 0.4, 0.4) * breatheY;
         isTeardrop = true;
         teardropSharpness = Math.max(50 - (stretchAmt * 30), 0);
-      } else if (letterSnapCoords || closeSnapCoords) {
-        // Just snap position, no teardrop stretching for magnetic targets
-        const snapTarget = letterSnapCoords || closeSnapCoords;
-        const dx = snapTarget.x - cx;
-        const dy = snapTarget.y - cy;
+      } else if (letterSnapCoords) {
+        // Just snap position, shrink to 0 for text gravity
+        const dx = letterSnapCoords.x - cx;
+        const dy = letterSnapCoords.y - cy;
         const distToCenter = Math.sqrt(dx * dx + dy * dy);
         
         if (distToCenter < 12) {
-          sX = closeSnapCoords ? 1 : 0; 
-          sY = closeSnapCoords ? 1 : 0;
-          if (closeSnapCoords) {
-            sX *= breatheX;
-            sY *= breatheY;
-          }
+          sX = 0; sY = 0;
         } else {
           sX = 1 * breatheX; 
           sY = 1 * breatheY;
           isTeardrop = false;
         }
       } else {
+        // Normal velocity-based stretch (used for free roaming and closeSnapCoords)
         // Normal velocity-based stretch
         const speed = Math.sqrt(vx * vx + vy * vy);
         const maxStretch = 0.45; // Increased max stretch for more fluid feel
@@ -456,6 +451,7 @@ export default function Overlay() {
 
       if (!orbitLatched) {
         dot.style.transform = `rotate(${angleDeg}deg) scale(${sX}, ${sY})`;
+        dot.style.setProperty('--cursor-rot', `${angleDeg}deg`);
         
         if (isTeardrop) {
           // Pause CSS animation and force teardrop shape pointing forward

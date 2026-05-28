@@ -606,7 +606,8 @@ a { color:inherit; text-decoration:none; }
               margin 0.45s cubic-bezier(0.19, 1, 0.22, 1),
               background 0.4s ease,
               border 0.4s ease,
-              opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+              opacity 0.3s cubic-bezier(0.19, 1, 0.22, 1),
+              border-radius 0.45s cubic-bezier(0.19, 1, 0.22, 1);
   border: 0px solid #0a0f0a;
   opacity: 0.92;
   /* Organic ink blob shape — continuously morphing */
@@ -650,9 +651,16 @@ a { color:inherit; text-decoration:none; }
   margin: -20px 0 0 -20px;
   background: var(--dark);
   opacity: 1;
-  border-radius: 50%;
-  animation: none;
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  animation: liquid-wobble 4s ease-in-out infinite;
   border: none;
+}
+
+@keyframes liquid-wobble {
+  0% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
+  33% { border-radius: 55% 45% 40% 60% / 45% 60% 55% 40%; }
+  66% { border-radius: 45% 55% 60% 40% / 60% 45% 40% 55%; }
+  100% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
 }
 
 .ink-cursor__dot::after {
@@ -662,17 +670,17 @@ a { color:inherit; text-decoration:none; }
   left: 50%;
   width: 16px;
   height: 16px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) rotate(calc(-1 * var(--cursor-rot, 0deg)));
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='19' y1='12' x2='5' y2='12'%3E%3C/line%3E%3Cpolyline points='12 19 5 12 12 5'%3E%3C/polyline%3E%3C/svg%3E");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .ink-cursor__dot.is-close-btn::after {
   opacity: 1;
+  transform: translate(-50%, -50%) rotate(calc(-1 * var(--cursor-rot, 0deg)));
 }
 
 /* When snapping to a pillar — shrink and hide so the drawn orbit ring takes over */

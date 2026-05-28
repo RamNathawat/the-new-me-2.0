@@ -13,7 +13,6 @@ const POSE = {
   side: { x: -1.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 },
   sideRight: { x: 0.85, y: 0.05, z: 0, rx: -0.04, ry: 0.15, rz: -0.03, sc: 0.75 },
   fill: { x: -28.0, y: 28.0, z: 1.5, rx: 0, ry: 0, rz: 0, sc: 42.0 }, // Zooming deep into a blank beige corner to create the Match Cut
-  authorStart: { x: -3.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 }, // Hidden offscreen left for the author entry
 };
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -37,7 +36,6 @@ export default function Book() {
     toSideRight: 0,
     toFill: 0,
     toMapFade: 0,
-    toAuthorStart: 0,
     toAuthor: 0,
   });
   
@@ -125,13 +123,6 @@ export default function Book() {
         }
       });
 
-      // Invisible transition from Fill to AuthorStart (happens while book is faded out)
-      ScrollTrigger.create({
-        trigger: '#s-map', start: 'top -20%', end: 'bottom 100%',
-        scrub: true,
-        onUpdate: (s) => { scrollState.current.toAuthorStart = s.progress; }
-      });
-
       // Book Author entry
       ScrollTrigger.create({
         trigger: '#s-author', start: 'top 90%', end: 'top 40%',
@@ -165,15 +156,14 @@ export default function Book() {
       }
     });
     
-    mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.03);
-    mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.03);
+    mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
+    mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
 
-    // Pose interpolation: hero → side → sideRight → fill → authorStart → side(author)
+    // Pose interpolation: hero → side → sideRight → fill → side(author)
     const atSide = lerpPose(POSE.hero, POSE.side, s.toSide);
     const atSideRight = lerpPose(atSide, POSE.sideRight, s.toSideRight);
     const atFill = lerpPose(atSideRight, POSE.fill, s.toFill);
-    const atAuthorStart = lerpPose(atFill, POSE.authorStart, s.toAuthorStart);
-    let target = lerpPose(atAuthorStart, POSE.side, s.toAuthor);
+    let target = lerpPose(atFill, POSE.side, s.toAuthor);
 
     // Add intro animation (jump + spin)
     target.y += introAnim.current.y;
@@ -182,11 +172,11 @@ export default function Book() {
     // Breathing
     const fillAmt = s.toFill * (1 - s.toAuthor);
     const fm = 1 - fillAmt * 0.7; // reduce breathing when zoomed in
-    target.x += Math.sin(t * 0.38 + 0.7) * 0.01 * fm;
-    target.y += Math.sin(t * 0.6) * 0.03 * fm;
-    target.ry += Math.sin(t * 0.22) * 0.012 * fm;
-    target.rx += Math.sin(t * 0.32 + 1.2) * 0.002 * fm;
-    target.rz += Math.sin(t * 0.18 + 2) * 0.001 * fm;
+    target.x += Math.sin(t * 0.38 + 0.7) * 0.015 * fm;
+    target.y += Math.sin(t * 0.6) * 0.05 * fm;
+    target.ry += Math.sin(t * 0.22) * 0.02 * fm;
+    target.rx += Math.sin(t * 0.32 + 1.2) * 0.003 * fm;
+    target.rz += Math.sin(t * 0.18 + 2) * 0.002 * fm;
 
     // Cursor
     const mx = mouseSmooth.current.x, my = mouseSmooth.current.y;
@@ -197,8 +187,8 @@ export default function Book() {
     target.y += my * -0.04 * hs;
 
     // Spring physics for a bouncy, elastic animation
-    const stiffness = 0.06;
-    const damping = 0.88; // Creates clean settling without overshoot
+    const stiffness = 0.08;
+    const damping = 0.75; // Creates overshoot/bounce
 
     vel.current.x += (target.x - cur.current.x) * stiffness;
     vel.current.y += (target.y - cur.current.y) * stiffness;
