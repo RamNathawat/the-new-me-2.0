@@ -344,6 +344,7 @@ export default function InkCanvas() {
   const contactAngleRef = useRef(0);
   const particlesRef = useRef([]);
   const lastHitTimesRef = useRef({});
+  const canvasDirtyRef = useRef(false);
 
   const INK_COLOR = 'rgb(3, 8, 3)';
   const hoveredNode = useStore((state) => state.hoveredNode);
@@ -472,14 +473,40 @@ export default function InkCanvas() {
       drawCy = currentPosRef.current.y;
     }
 
-    if (Math.abs(progressRef.current) < 0.001 && targetProgressRef.current === 0) {
-      progressRef.current = 0;
+    if (Math.abs(progressRef.current - targetProgressRef.current) < 0.005) {
+      progressRef.current = targetProgressRef.current;
     }
 
+    // Determine if we actually need to redraw this frame
+    const isTransitioning = viewMode === 'transition' || viewMode === 'retract';
+    const isFullyDrawn = progressRef.current === 1 && targetProgressRef.current === 1;
+    const isFullyHidden = progressRef.current === 0 && targetProgressRef.current === 0;
+    const hasParticles = particlesRef.current.length > 0;
+    
+    const distToMouse = Math.sqrt(Math.pow(mx - drawCx, 2) + Math.pow(my - drawCy, 2));
+    const isSettled = Math.abs(currentPosRef.current.x - targetPosRef.current.x) < 0.5 && 
+                      Math.abs(currentPosRef.current.y - targetPosRef.current.y) < 0.5;
+
+    const needsRedraw = 
+      (!isFullyDrawn && !isFullyHidden) || // Actively drawing/erasing
+      hasParticles ||                      // Particles are alive
+      isTransitioning ||                   // Transitioning modes
+      (distToMouse < 260) ||               // Mouse is close enough to warp/drift
+      !isSettled;                          // Center position is still settling
+
+    if (!needsRedraw) {
+      if (isFullyHidden && canvasDirtyRef.current) {
+        ctx.clearRect(0, 0, w, h);
+        canvasDirtyRef.current = false;
+      }
+      rafRef.current = requestAnimationFrame(animate);
+      return;
+    }
+
+    canvasDirtyRef.current = true;
     ctx.clearRect(0, 0, w, h);
 
     const scale = Math.min(w, h) / 900;
-    const isTransitioning = viewMode === 'transition' || viewMode === 'retract';
     
     // Draw the base logogram (or explosion)
     if ((progressRef.current > 0.001 || isTransitioning) && activeLogogramRef.current) {

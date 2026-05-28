@@ -54,12 +54,28 @@ export default function Book() {
     return () => window.removeEventListener('mousemove', handleMove);
   }, []);
 
+  const materialsRef = useRef([]);
+  const prevOpacityRef = useRef(1);
+
   useLayoutEffect(() => {
     // Center the geometry like the original script
     const box = new THREE.Box3().setFromObject(scene);
     const center = new THREE.Vector3();
     box.getCenter(center);
     scene.position.sub(center);
+
+    // Cache materials in a flat array for fast updates
+    const mats = [];
+    scene.traverse((child) => {
+      if (child.isMesh && child.material) {
+        if (!child.material.transparent) {
+          child.material.transparent = true;
+          child.material.needsUpdate = true;
+        }
+        mats.push(child.material);
+      }
+    });
+    materialsRef.current = mats;
   }, [scene])
 
   useLayoutEffect(() => {
@@ -142,20 +158,15 @@ export default function Book() {
     
     // We no longer fade the entire canvas! That hid the particles.
     // Instead, we calculate the book's opacity so we can fade out the 3D model itself.
-    const bookOpacity = 1 - s.toMapFade + s.toAuthor;
+    const bookOpacity = Math.max(0, Math.min(1, 1 - s.toMapFade + s.toAuthor));
     
-    // Apply opacity to the book materials
-    scene.traverse((child) => {
-      if (child.isMesh && child.material) {
-        // Enable transparency if we need to fade
-        if (!child.material.transparent) {
-          child.material.transparent = true;
-          child.material.needsUpdate = true;
-        }
-        child.material.opacity = Math.max(0, Math.min(1, bookOpacity));
-      }
-    });
-    
+    // Apply opacity only if it changed to avoid WebGL state churn
+    if (Math.abs(bookOpacity - prevOpacityRef.current) > 0.005) {
+      materialsRef.current.forEach(mat => {
+        mat.opacity = bookOpacity;
+      });
+      prevOpacityRef.current = bookOpacity;
+    }
     mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
     mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
 

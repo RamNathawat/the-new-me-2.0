@@ -574,16 +574,53 @@ export default function Overlay() {
               span.textContent = ch;
               span.className = 'jello-char';
               span.style.display = 'inline-block';
+              // Make it positioned relative so offsetTop/Left are relative to container
+              span.style.position = 'relative'; 
               fragment.appendChild(span);
             }
           }
         }
       });
       el.textContent = '';
+      // Ensure the container is positioned so offsets are relative to it
+      if (getComputedStyle(el).position === 'static') {
+         el.style.position = 'relative';
+      }
       el.appendChild(fragment);
     });
 
-    // Now target every .jello-char for hit-testing
+    // Cache for DOM nodes to avoid layout thrashing
+    let cachedMapNodes = [];
+    let cachedJelloGroups = [];
+
+    const buildCache = () => {
+      cachedMapNodes = mapChNodes.map(node => {
+        // We still need to call this on mousemove because the map transforms (scales/pans).
+        // But we only do it if the map is active.
+        return { node }; 
+      });
+
+      cachedJelloGroups = Array.from(jelloContainers).map(container => {
+        const chars = Array.from(container.querySelectorAll('.jello-char')).map(el => {
+          return {
+            el,
+            cx: el.offsetLeft + el.offsetWidth / 2,
+            cy: el.offsetTop + el.offsetHeight / 2
+          };
+        });
+        return { container, chars };
+      });
+    };
+
+    let resizeTimer;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(buildCache, 250);
+    };
+    window.addEventListener('resize', onResize);
+    setTimeout(buildCache, 100);
+
+    // Now target every .jello-char for state mapping
     const jelloChars = jelloRoot.querySelectorAll('.jello-char');
     const jelloState = new Map();
 
@@ -599,14 +636,14 @@ export default function Overlay() {
       let closestPillar = null;
 
       if (useStore.getState().viewMode === 'map') {
-        mapChNodes.forEach((node) => {
-          const rect = node.getBoundingClientRect();
+        cachedMapNodes.forEach((cached) => {
+          const rect = cached.node.getBoundingClientRect();
           const cx = rect.left + rect.width / 2;
           const cy = rect.top + rect.height / 2;
           const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
           if (dist < closestPillarDist) {
             closestPillarDist = dist;
-            closestPillar = { node, cx, cy };
+            closestPillar = { node: cached.node, cx, cy };
           }
         });
       }
@@ -684,18 +721,26 @@ export default function Overlay() {
         let closestLetter = null;
         let minDistance = 80;
 
-        jelloChars.forEach((el) => {
-          const rect = el.getBoundingClientRect();
-          const cx = rect.left + rect.width / 2;
-          const cy = rect.top + rect.height / 2;
-          
-          const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
+        cachedJelloGroups.forEach(group => {
+           const rect = group.container.getBoundingClientRect();
+           // Broad phase check: is mouse near this container?
+           if (clientX < rect.left - 100 || clientX > rect.right + 100 || 
+               clientY < rect.top - 100 || clientY > rect.bottom + 100) {
+              return;
+           }
+           
+           // Narrow phase: check each cached character
+           group.chars.forEach(char => {
+              const cx = rect.left + char.cx;
+              const cy = rect.top + char.cy;
+              const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
 
-          if (dist < minDistance) {
-            minDistance = dist;
-            closestLetter = el;
-            letterSnapCoords = { x: cx, y: cy };
-          }
+              if (dist < minDistance) {
+                 minDistance = dist;
+                 closestLetter = char.el;
+                 letterSnapCoords = { x: cx, y: cy };
+              }
+           });
         });
 
         if (!closestLetter) {
@@ -800,12 +845,14 @@ export default function Overlay() {
     return () => {
       window.removeEventListener('click', onGlobalClick);
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('resize', onResize);
       window.removeEventListener('mousemove', jelloMouseMove);
       window.removeEventListener('mouseover', onMouseOver);
       document.documentElement.removeEventListener('mouseleave', onMouseLeaveWindow);
       document.documentElement.removeEventListener('mouseenter', onMouseEnterWindow);
       if (cursorRafId) cancelAnimationFrame(cursorRafId);
       jelloState.forEach((state) => { if (state.tween) state.tween.kill(); });
+      clearTimeout(resizeTimer);
     };
   }, []);
 

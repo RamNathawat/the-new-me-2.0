@@ -76,7 +76,7 @@
   opacity: 0.06;
   filter: blur(6px);
   transform: scale(0.92);
-  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), filter 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* The focused pillar overrides defocus — stays sharp and scales DOWN to fit inside ink */
@@ -134,7 +134,7 @@
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 700;
   color: var(--dark);
-  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: center center;
 }
 
@@ -180,7 +180,7 @@
   color: var(--dark);
   opacity: 0;
   filter: blur(8px);
-  transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), filter 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
   font-style: italic;
   font-weight: 400;
@@ -215,7 +215,7 @@
   max-height: 0;
   overflow: hidden;
   max-width: 240px;
-  transition: all 0.5s var(--ease);
+  transition: opacity 0.5s var(--ease), max-height 0.5s var(--ease);
 }
 
 .map__ch:hover .map__ch-preview {
@@ -358,7 +358,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s var(--ease);
+  transition: transform 0.3s var(--ease);
   animation: liquid-wobble 4s ease-in-out infinite;
 }
 
