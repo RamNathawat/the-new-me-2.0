@@ -132,9 +132,9 @@ export default function Book() {
         onUpdate: (s) => { scrollState.current.toFill = s.progress; }
       });
 
-      // Book Fade out for Map (This is exactly when we enter the Map section!)
+      // Book Fade out for Map (Fade out while zooming in to prevent clipping)
       ScrollTrigger.create({
-        trigger: '#s-map', start: 'top 20%', end: 'top top',
+        trigger: '#s-map', start: 'top 50%', end: 'top 30%',
         scrub: 1.5,
         onUpdate: (s) => { 
           scrollState.current.toMapFade = s.progress; 
@@ -165,11 +165,19 @@ export default function Book() {
     const t = state.clock.elapsedTime;
     const s = scrollState.current;
     
-    // Calculate book opacity for map fade transition
-    const bookOpacity = Math.max(0, Math.min(1, 1 - s.toMapFade + s.toAuthor));
+    // Calculate global opacity for map fade transition
+    // Map section fades it out, Author section fades it back in
+    const opacityAmt = Math.max(0, Math.min(1, 1 - s.toMapFade + s.toAuthor));
     
+    // Apply CSS opacity to the canvas container to gracefully fade out 
+    // the entire 3D scene (avoiding ugly internal mesh intersections)
+    const canvasEl = document.getElementById('canvas-container');
+    if (canvasEl) {
+      canvasEl.style.opacity = opacityAmt;
+    }
+
     // Skip rendering entirely when invisible
-    if (bookOpacity < 0.01) {
+    if (opacityAmt < 0.01) {
       group.current.visible = false;
       return;
     }
