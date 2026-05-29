@@ -28,6 +28,20 @@ const Overlay = memo(function Overlay() {
 
   // Make header visible immediately
   useEffect(() => {
+    // ════════════ MASTER MAGNETIC SNAP ════════════
+    // Uses GSAP to magnetically align sections using the cinematic snappy curve
+    ScrollTrigger.create({
+      trigger: "body",
+      start: "top top",
+      end: "bottom bottom",
+      snap: {
+        snapTo: ".snap-point",
+        duration: { min: 0.8, max: 1.5 },
+        delay: 0.1, // Wait briefly after scrolling stops to avoid fighting user
+        ease: "snappy"
+      }
+    });
+
     const header = document.getElementById('site-header');
     if (header) header.classList.add('on');
   }, []);
@@ -1012,6 +1026,17 @@ const Overlay = memo(function Overlay() {
 
   // Strict scroll lock during takeover
   useEffect(() => {
+    // Fade out scroll cue on scroll
+    gsap.to('#scroll-cue', {
+      scrollTrigger: {
+        trigger: "body",
+        start: "top top",
+        toggleActions: "play none none reverse"
+      },
+      opacity: 0,
+      duration: 0.5
+    });
+
     const killScroll = (e) => {
       if (useStore.getState().viewMode === 'takeover') {
         e.preventDefault();

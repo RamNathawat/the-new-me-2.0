@@ -24,7 +24,10 @@
 
 /* ── Reset ────────────────────────────────────── */
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
-html { -webkit-font-smoothing:antialiased; scroll-behavior:auto; }
+html { 
+  -webkit-font-smoothing: antialiased; 
+  scroll-behavior: auto; 
+}
 body {
   font-family: var(--ff);
   font-size: 1.125rem;
@@ -252,8 +255,11 @@ a { color:inherit; text-decoration:none; }
   border-radius:3px;
 }
 
-/* ── Sections ─────────────────────────────────── */
-.s { position:relative; width:100%; }
+/* ── Layout & Typography Utilities ──────────────── */
+.s {
+  position: relative;
+  width: 100%;
+}
 
 /* ═══════════════════════════════════════════════════
    HERO — Book-First, Sage Atmosphere

@@ -194,11 +194,16 @@ export default function Book() {
     mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
     mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
 
-    // Pose interpolation: hero → side → sideRight → fill → side(author)
-    const atSide = lerpPose(POSE.hero, POSE.side, s.toSide);
-    const atSideRight = lerpPose(atSide, POSE.sideRight, s.toSideRight);
-    const atFill = lerpPose(atSideRight, POSE.fill, s.toFill);
+    // Apply the cinematic "snappy" physics curve to ALL scroll transitions
+    const snappyToSide = CustomEase.get("snappy")(s.toSide);
+    const snappyToSideRight = CustomEase.get("snappy")(s.toSideRight);
+    const snappyToFill = CustomEase.get("snappy")(s.toFill);
     const snappyAuthorProgress = CustomEase.get("snappy")(s.toAuthor);
+
+    // Pose interpolation: hero → side → sideRight → fill → side(author)
+    const atSide = lerpPose(POSE.hero, POSE.side, snappyToSide);
+    const atSideRight = lerpPose(atSide, POSE.sideRight, snappyToSideRight);
+    const atFill = lerpPose(atSideRight, POSE.fill, snappyToFill);
     let target = lerpPose(atFill, POSE.side, snappyAuthorProgress);
 
     // Add intro animation (majestic glide)
