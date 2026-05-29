@@ -20,6 +20,12 @@ export default function Overlay() {
   const cursorTextWrapperRef = useRef(null);
   const cursorTextRef = useRef(null);
 
+  // Make header visible immediately
+  useEffect(() => {
+    const header = document.getElementById('site-header');
+    if (header) header.classList.add('on');
+  }, []);
+
   useEffect(() => {
     if (!overlayRef.current) return;
 
@@ -27,10 +33,6 @@ export default function Overlay() {
     let isSnapped = false;
     let snapTarget = null;
     const cursorInner = cursorInnerRef.current;
-
-    // Remove the intro loader immediately since we are in dev/R3F now
-    const loader = document.getElementById('loader');
-    if (loader) loader.style.display = 'none';
 
     // Make header visible
     const header = document.getElementById('site-header');

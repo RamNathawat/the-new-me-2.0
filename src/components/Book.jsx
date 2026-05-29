@@ -25,7 +25,7 @@ function lerpPose(a, b, t) {
 }
 
 export default function Book() {
-  const { scene } = useGLTF('/book.glb')
+  const { scene } = useGLTF('/book.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
   const group = useRef()
   const setIsMapVisible = useStore(state => state.setIsMapVisible);
   const wasVisibleRef = useRef(false);
@@ -79,28 +79,12 @@ export default function Book() {
     };
   }, []);
 
-  const materialsRef = useRef([]);
-  const prevOpacityRef = useRef(1);
-
   useLayoutEffect(() => {
     // Center the geometry like the original script
     const box = new THREE.Box3().setFromObject(scene);
     const center = new THREE.Vector3();
     box.getCenter(center);
     scene.position.sub(center);
-
-    // Cache materials in a flat array for fast updates
-    const mats = [];
-    scene.traverse((child) => {
-      if (child.isMesh && child.material) {
-        if (!child.material.transparent) {
-          child.material.transparent = true;
-          child.material.needsUpdate = true;
-        }
-        mats.push(child.material);
-      }
-    });
-    materialsRef.current = mats;
   }, [scene])
 
   useLayoutEffect(() => {
@@ -181,17 +165,15 @@ export default function Book() {
     const t = state.clock.elapsedTime;
     const s = scrollState.current;
     
-    // We no longer fade the entire canvas! That hid the particles.
-    // Instead, we calculate the book's opacity so we can fade out the 3D model itself.
+    // Calculate book opacity for map fade transition
     const bookOpacity = Math.max(0, Math.min(1, 1 - s.toMapFade + s.toAuthor));
     
-    // Apply opacity only if it changed to avoid WebGL state churn
-    if (Math.abs(bookOpacity - prevOpacityRef.current) > 0.005) {
-      materialsRef.current.forEach(mat => {
-        mat.opacity = bookOpacity;
-      });
-      prevOpacityRef.current = bookOpacity;
+    // Skip rendering entirely when invisible
+    if (bookOpacity < 0.01) {
+      group.current.visible = false;
+      return;
     }
+    group.current.visible = true;
 
     // ── Smooth scroll velocity (for tilt reactivity) ──
     smoothScrollVel.current = lerp(smoothScrollVel.current, scrollVel.current, 0.08);
@@ -307,10 +289,6 @@ export default function Book() {
     group.current.position.set(cur.current.x, cur.current.y, cur.current.z);
     group.current.rotation.set(cur.current.rx, cur.current.ry, cur.current.rz);
     group.current.scale.setScalar(cur.current.sc);
-    
-    // We removed the manual canvasFade logic so the 3D book acts as a persistent, 
-    // beautiful cinematic backdrop during the map section.
-    group.current.visible = true;
   });
 
   return (
@@ -321,4 +299,4 @@ export default function Book() {
   )
 }
 
-useGLTF.preload('/book.glb')
+useGLTF.preload('/book.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
