@@ -3,10 +3,12 @@ import { useRef, useLayoutEffect, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { CustomEase } from 'gsap/CustomEase'
 import * as THREE from 'three'
 import { useStore } from '../store'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, CustomEase)
+CustomEase.create("snappy", "M0,0 C0.094,0.026 0.124,0.127 0.157,0.29 0.197,0.486 0.254,0.8 0.348 1 0.456,1 1,1 1,1")
 
 const POSE = {
   hero: { x: 0, y: 0, z: 0, rx: -0.08, ry: -0.25, rz: 0.05, sc: 1.1 },
@@ -196,7 +198,8 @@ export default function Book() {
     const atSide = lerpPose(POSE.hero, POSE.side, s.toSide);
     const atSideRight = lerpPose(atSide, POSE.sideRight, s.toSideRight);
     const atFill = lerpPose(atSideRight, POSE.fill, s.toFill);
-    let target = lerpPose(atFill, POSE.side, s.toAuthor);
+    const snappyAuthorProgress = CustomEase.get("snappy")(s.toAuthor);
+    let target = lerpPose(atFill, POSE.side, snappyAuthorProgress);
 
     // Add intro animation (majestic glide)
     target.y += introAnim.current.y;

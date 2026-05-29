@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, memo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { CustomEase } from 'gsap/CustomEase';
 import { useStore } from '../store';
 import layoutHTML from '../vanilla-layout.html?raw';
 import InkCanvas from './InkCanvas.jsx';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, CustomEase);
+CustomEase.create("snappy", "M0,0 C0.094,0.026 0.124,0.127 0.157,0.29 0.197,0.486 0.254,0.8 0.348 1 0.456,1 1,1 1,1");
 
 const StaticLayout = memo(() => (
   <div dangerouslySetInnerHTML={{ __html: layoutHTML }} />
@@ -44,14 +46,21 @@ const Overlay = memo(function Overlay() {
       header.classList.add('on');
     }
 
-    // Blur Reveal logic for headlines and body text
+    // Premium Snappy Clip-Path Reveal for all text and author elements
     gsap.utils.toArray('.headline, .story__panel--b, .tr, .label').forEach((el) => {
       gsap.fromTo(el, 
-        { filter: 'blur(12px)', opacity: 0, y: 30 },
-        { filter: 'blur(0px)', opacity: 1, y: 0, duration: 1.8, ease: 'expo.out', scrollTrigger: {
-          trigger: el,
-          start: 'top 85%'
-        }}
+        { clipPath: 'inset(100% 0% 0% 0%)', opacity: 0, y: 30 },
+        { 
+          clipPath: 'inset(0% 0% 0% 0%)', 
+          opacity: 1, 
+          y: 0, 
+          duration: 1.5, 
+          ease: 'snappy', 
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 85%'
+          }
+        }
       );
     });
 
