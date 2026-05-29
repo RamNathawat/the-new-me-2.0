@@ -148,9 +148,9 @@ export default function Book() {
         }
       });
 
-      // Book Author entry
+      // Book Author entry (Starts zooming out as soon as the section enters the bottom of the screen)
       ScrollTrigger.create({
-        trigger: '#s-author', start: 'top 50%', end: 'top 15%',
+        trigger: '#s-author', start: 'top 100%', end: 'top 60%',
         scrub: 1.5,
         onUpdate: (s) => { 
           scrollState.current.toAuthor = s.progress; 
@@ -166,8 +166,8 @@ export default function Book() {
     const s = scrollState.current;
     
     // Calculate global opacity for map fade transition
-    // Map section fades it out, Author section fades it back in
-    const opacityAmt = Math.max(0, Math.min(1, 1 - s.toMapFade + s.toAuthor));
+    // Map section fades it out, Author section fades it back in (accelerated so it's solid before shrinking too much)
+    const opacityAmt = Math.max(0, Math.min(1, 1 - s.toMapFade + (s.toAuthor * 5)));
     
     // Apply CSS opacity to the canvas container to gracefully fade out 
     // the entire 3D scene before the camera clips into the book geometry.

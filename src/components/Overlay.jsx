@@ -108,6 +108,19 @@ const Overlay = memo(function Overlay() {
       }
     });
 
+    // Fade out the entire Map viewport when Author section enters
+    // This ensures the map buttons don't stay visible while the book is zooming out
+    gsap.to('#map-viewport', {
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#s-author',
+        start: 'top 100%',
+        end: 'top 70%',
+        scrub: true
+      }
+    });
+
     // DNA scrollbar logic
     gsap.to('#dna-fill', {
       height: '100%',
