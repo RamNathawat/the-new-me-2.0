@@ -121,6 +121,22 @@ const Overlay = memo(function Overlay() {
       }
     });
 
+    // Lock the 3D canvas to the DOM so the book scrolls away naturally
+    // instead of floating in the middle of the screen forever.
+    ScrollTrigger.create({
+      trigger: '#s-author',
+      start: 'top -50%', // Lock the canvas 50% later so the book sits exactly 50% lower
+      end: 'max',
+      onUpdate: (self) => {
+        const canvasEl = document.getElementById('canvas-container');
+        if (canvasEl) {
+          // Translate exactly 1:1 with the scroll distance
+          const pixelsScrolled = self.scroll() - self.start;
+          canvasEl.style.transform = `translateY(-${pixelsScrolled}px)`;
+        }
+      }
+    });
+
     // DNA scrollbar logic
     gsap.to('#dna-fill', {
       height: '100%',

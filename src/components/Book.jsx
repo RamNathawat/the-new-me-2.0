@@ -169,12 +169,16 @@ export default function Book() {
     // Map section fades it out, Author section fades it back in (accelerated so it's solid before shrinking too much)
     const opacityAmt = Math.max(0, Math.min(1, 1 - s.toMapFade + (s.toAuthor * 5)));
     
-    // Apply CSS opacity to the canvas container to gracefully fade out 
-    // the entire 3D scene before the camera clips into the book geometry.
+    // Apply CSS opacity and blur to the canvas container
+    // Blur is tied to physical proximity (toFill) so it blurs BEFORE fading out!
+    const closeToCamera = Math.max(0, s.toFill - s.toAuthor);
+    // Start the blur earlier (at 50% of the zoom) and ramp it up smoothly
+    const blurAmt = Math.max(0, (closeToCamera - 0.5) * 2) * 30; // Max 30px blur
+    
     const canvasEl = document.getElementById('canvas-container');
     if (canvasEl) {
       canvasEl.style.opacity = opacityAmt;
-      canvasEl.style.filter = 'none'; // Ensure blur is removed
+      canvasEl.style.filter = blurAmt > 0.1 ? `blur(${blurAmt}px)` : 'none';
     }
 
     // Skip rendering entirely when invisible
