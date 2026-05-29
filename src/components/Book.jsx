@@ -43,7 +43,7 @@ export default function Book() {
   const vel = useRef({ x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sc: 0 });
   const mouse = useRef({ x: 0, y: 0 });
   const mouseSmooth = useRef({ x: 0, y: 0 });
-  const introAnim = useRef({ y: 0, ry: Math.PI * -2 });
+  const introAnim = useRef({ y: -1.0, rx: 0.15, ry: 0.15 });
 
   // Scroll velocity tracking
   const scrollVel = useRef(0);
@@ -88,26 +88,14 @@ export default function Book() {
   }, [scene])
 
   useLayoutEffect(() => {
-    // 360 spin jump animation on load
-    gsap.to(introAnim.current, {
-      ry: 0,
-      duration: 2.0,
-      ease: 'power3.inOut',
-      delay: 0.2
-    });
-    
-    gsap.to(introAnim.current, {
-      y: 1.2,
-      duration: 1.0,
-      ease: 'power2.out',
-      delay: 0.2
-    });
-    
+    // Majestic glide upward with subtle tilt correction on load
     gsap.to(introAnim.current, {
       y: 0,
-      duration: 1.0,
-      ease: 'bounce.out',
-      delay: 1.2
+      rx: 0,
+      ry: 0,
+      duration: 2.5,
+      ease: 'power3.out',
+      delay: 0.2
     });
 
     const ctx = gsap.context(() => {
@@ -210,8 +198,9 @@ export default function Book() {
     const atFill = lerpPose(atSideRight, POSE.fill, s.toFill);
     let target = lerpPose(atFill, POSE.side, s.toAuthor);
 
-    // Add intro animation (jump + spin)
+    // Add intro animation (majestic glide)
     target.y += introAnim.current.y;
+    target.rx += introAnim.current.rx;
     target.ry += introAnim.current.ry;
 
     // ── How "zoomed-in" are we? ──
@@ -238,66 +227,43 @@ export default function Book() {
     target.rz += Math.cos(lemnT * 0.8) * 0.008 * orbitAmp;
 
     // ══════════════════════════════════════════════════
-    // AMPLIFIED BREATHING — 3× more alive
+    // SUBTLE BREATHING — Slow, majestic levitation
     // ══════════════════════════════════════════════════
     const fm = 1 - fillAmt * 0.7; // reduce breathing when zoomed in
-    target.x += Math.sin(t * 0.38 + 0.7) * 0.04 * fm;
-    target.y += Math.sin(t * 0.6) * 0.12 * fm;
-    target.ry += Math.sin(t * 0.22) * 0.05 * fm;
-    target.rx += Math.sin(t * 0.32 + 1.2) * 0.01 * fm;
-    target.rz += Math.sin(t * 0.18 + 2) * 0.006 * fm;
+    target.x += Math.sin(t * 0.25 + 0.7) * 0.02 * fm;
+    target.y += Math.sin(t * 0.35) * 0.06 * fm;
+    target.ry += Math.sin(t * 0.15) * 0.025 * fm;
+    target.rx += Math.sin(t * 0.2 + 1.2) * 0.005 * fm;
+    target.rz += Math.sin(t * 0.12 + 2) * 0.003 * fm;
 
     // ══════════════════════════════════════════════════
-    // SCROLL-VELOCITY TILT — Forward/backward lean
-    // ══════════════════════════════════════════════════
-    const tiltAmount = Math.max(-0.12, Math.min(0.12, smoothScrollVel.current * 0.003));
-    target.rx += tiltAmount * (1 - fillAmt);
-
-    // ══════════════════════════════════════════════════
-    // DRAMATIC CURSOR-REACTIVE TILT — "Curiosity Peek"
+    // SUBTLE CURSOR PARALLAX — Premium weight
     // ══════════════════════════════════════════════════
     const mx = mouseSmooth.current.x, my = mouseSmooth.current.y;
     const hs = Math.max(0.1, 1 - s.toSide * 0.6 - fillAmt * 0.8);
     
-    // Enhanced tilt: left mouse = peek at cover, right = peek at spine
-    target.ry += mx * 0.22 * hs;
-    target.rx += my * 0.12 * hs;
+    // Slight tilt: left mouse = peek at cover, right = peek at spine
+    target.ry += mx * 0.06 * hs;
+    target.rx += my * 0.03 * hs;
     // Position parallax
-    target.x += mx * 0.1 * hs;
-    target.y += my * -0.06 * hs;
-    // Z-axis repulsion: cursor near center pushes book slightly away
+    target.x += mx * 0.03 * hs;
+    target.y += my * -0.02 * hs;
+    // Z-axis repulsion reduced significantly
     const mouseProximity = 1 - Math.sqrt(mx * mx + my * my);
-    target.z += mouseProximity * -0.08 * hs;
+    target.z += mouseProximity * -0.02 * hs;
 
     // ══════════════════════════════════════════════════
-    // BOUNCY SPRING PHYSICS — Elastic, organic feel
+    // SMOOTH PHYSICS — Premium, heavy weight (Zero Bounce)
     // ══════════════════════════════════════════════════
-    const stiffness = 0.05;
-    const damping = 0.65; // Creates more overshoot/bounce
+    const smoothing = 0.05; // 5% interpolation per frame, completely eliminates overshoot
 
-    vel.current.x += (target.x - cur.current.x) * stiffness;
-    vel.current.y += (target.y - cur.current.y) * stiffness;
-    vel.current.z += (target.z - cur.current.z) * stiffness;
-    vel.current.rx += (target.rx - cur.current.rx) * stiffness;
-    vel.current.ry += (target.ry - cur.current.ry) * stiffness;
-    vel.current.rz += (target.rz - cur.current.rz) * stiffness;
-    vel.current.sc += (target.sc - cur.current.sc) * stiffness;
-
-    vel.current.x *= damping;
-    vel.current.y *= damping;
-    vel.current.z *= damping;
-    vel.current.rx *= damping;
-    vel.current.ry *= damping;
-    vel.current.rz *= damping;
-    vel.current.sc *= damping;
-
-    cur.current.x += vel.current.x;
-    cur.current.y += vel.current.y;
-    cur.current.z += vel.current.z;
-    cur.current.rx += vel.current.rx;
-    cur.current.ry += vel.current.ry;
-    cur.current.rz += vel.current.rz;
-    cur.current.sc += vel.current.sc;
+    cur.current.x += (target.x - cur.current.x) * smoothing;
+    cur.current.y += (target.y - cur.current.y) * smoothing;
+    cur.current.z += (target.z - cur.current.z) * smoothing;
+    cur.current.rx += (target.rx - cur.current.rx) * smoothing;
+    cur.current.ry += (target.ry - cur.current.ry) * smoothing;
+    cur.current.rz += (target.rz - cur.current.rz) * smoothing;
+    cur.current.sc += (target.sc - cur.current.sc) * smoothing;
 
     group.current.position.set(cur.current.x, cur.current.y, cur.current.z);
     group.current.rotation.set(cur.current.rx, cur.current.ry, cur.current.rz);

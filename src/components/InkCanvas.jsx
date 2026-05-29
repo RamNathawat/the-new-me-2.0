@@ -274,7 +274,7 @@ export default function InkCanvas() {
   // Cache ink-char elements per pillar to avoid querySelectorAll in hot path
   const charCacheRef = useRef({});
 
-  const INK_COLOR = '#141303';
+  const INK_COLOR = '#05180A'; // Midnight Pine
   const hoveredNode = useStore((state) => state.hoveredNode);
   const isMapVisible = useStore((state) => state.isMapVisible);
   const activePillar = useStore((state) => state.activePillar);

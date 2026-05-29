@@ -125,7 +125,7 @@ const Overlay = memo(function Overlay() {
     // instead of floating in the middle of the screen forever.
     ScrollTrigger.create({
       trigger: '#s-author',
-      start: 'top -50%', // Lock the canvas 50% later so the book sits exactly 50% lower
+      start: 'top -30%', // Lock the canvas 30% later so the book sits 30% lower
       end: 'max',
       onUpdate: (self) => {
         const canvasEl = document.getElementById('canvas-container');
