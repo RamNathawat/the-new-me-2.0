@@ -616,7 +616,7 @@ a { color:inherit; text-decoration:none; }
 
 /* Custom Cursor global hide on desktop devices */
 @media (min-width: 1025px) {
-  body, a, button, [role="button"], input, select, textarea, .map__ch, .takeover__close {
+  * {
     cursor: none !important;
   }
 }
@@ -661,25 +661,25 @@ a { color:inherit; text-decoration:none; }
               border-radius 0.45s cubic-bezier(0.19, 1, 0.22, 1);
   border: 0px solid #141303;
   opacity: 0.92;
-  border-radius: 50%;
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
   animation: blobMorph 3s ease-in-out infinite alternate;
 }
 
 @keyframes blobMorph {
   0% {
-    transform: scale(1) rotate(0deg) skew(0deg, 0deg);
+    border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
   }
   25% {
-    transform: scale(1.05, 0.95) rotate(15deg) skew(2deg, -2deg);
+    border-radius: 55% 45% 40% 60% / 45% 60% 40% 55%;
   }
   50% {
-    transform: scale(0.95, 1.05) rotate(45deg) skew(-2deg, 2deg);
+    border-radius: 45% 55% 60% 40% / 60% 45% 55% 40%;
   }
   75% {
-    transform: scale(1.02, 0.98) rotate(75deg) skew(1deg, -1deg);
+    border-radius: 60% 40% 45% 55% / 40% 55% 45% 60%;
   }
   100% {
-    transform: scale(0.98, 1.02) rotate(90deg) skew(-1deg, 1deg);
+    border-radius: 50% 50% 50% 50% / 42% 58% 50% 50%;
   }
 }
 
@@ -707,10 +707,10 @@ a { color:inherit; text-decoration:none; }
 }
 
 @keyframes liquid-wobble {
-  0% { transform: scale(1) rotate(0deg); }
-  33% { transform: scale(1.1, 0.9) rotate(30deg); }
-  66% { transform: scale(0.9, 1.1) rotate(-15deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
+  33% { border-radius: 55% 45% 40% 60% / 45% 60% 55% 40%; }
+  66% { border-radius: 45% 55% 60% 40% / 60% 45% 40% 55%; }
+  100% { border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%; }
 }
 
 .ink-cursor__dot::after {

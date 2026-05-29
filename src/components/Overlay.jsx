@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useStore } from '../store';
@@ -7,7 +7,11 @@ import InkCanvas from './InkCanvas.jsx';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function Overlay() {
+const StaticLayout = memo(() => (
+  <div dangerouslySetInnerHTML={{ __html: layoutHTML }} />
+));
+
+const Overlay = memo(function Overlay() {
   const setHoveredNode = useStore(state => state.setHoveredNode);
   const setActivePillar = useStore(state => state.setActivePillar);
   const setViewMode = useStore(state => state.setViewMode);
@@ -620,12 +624,8 @@ export default function Overlay() {
     const buildCache = () => {
       const mapNodes = Array.from(jelloRoot.querySelectorAll('.map__ch, .header__cta'));
       cachedMapNodes = mapNodes.map(node => {
-        // Cache rect to avoid thrashing on mousemove
-        const rect = node.getBoundingClientRect();
         return { 
           node,
-          cx: rect.left + rect.width / 2,
-          cy: rect.top + rect.height / 2,
           isCta: node.classList.contains('header__cta'),
           isMapCh: node.classList.contains('map__ch'),
           id: node.id
@@ -633,10 +633,6 @@ export default function Overlay() {
       });
 
       cachedJelloGroups = Array.from(jelloContainers).map(container => {
-        const crect = container.getBoundingClientRect();
-        const absoluteTop = crect.top + window.scrollY;
-        const absoluteLeft = crect.left + window.scrollX;
-        
         const chars = Array.from(container.querySelectorAll('.jello-char')).map(el => {
           return {
             el,
@@ -644,7 +640,7 @@ export default function Overlay() {
             cy: el.offsetTop + el.offsetHeight / 2
           };
         });
-        return { container, chars, absoluteTop, absoluteLeft, width: crect.width, height: crect.height };
+        return { container, chars };
       });
 
       // Cache the massive background text letters for repulsion
@@ -684,6 +680,10 @@ export default function Overlay() {
       if (useStore.getState().viewMode === 'map') {
         cachedMapNodes.forEach((cached) => {
           if (cached.isMapCh) {
+            const rect = cached.node.getBoundingClientRect();
+            cached.cx = rect.left + rect.width / 2;
+            cached.cy = rect.top + rect.height / 2;
+
             // Note: because the map tilts via CSS transform, this is an approximation, 
             // but it's fast. For perfection we'd need to re-query, but for performance 
             // we use the cached center. The tilt is minor (max 4deg) so it's fine.
@@ -699,6 +699,10 @@ export default function Overlay() {
       // Always check the header CTA regardless of view mode
       cachedMapNodes.forEach((cached) => {
         if (cached.isCta) {
+          const rect = cached.node.getBoundingClientRect();
+          cached.cx = rect.left + rect.width / 2;
+          cached.cy = rect.top + rect.height / 2;
+
           const distSq = Math.pow(clientX - cached.cx, 2) + Math.pow(clientY - cached.cy, 2);
           if (distSq < closestPillarDist) {
             closestPillarDist = distSq;
@@ -795,25 +799,19 @@ export default function Overlay() {
         let closestLetter = null;
         let minDistance = 80;
 
-        const scrollY = window.scrollY;
-        const scrollX = window.scrollX;
-
         cachedJelloGroups.forEach(group => {
-           const rectLeft = group.absoluteLeft - scrollX;
-           const rectTop = group.absoluteTop - scrollY;
-           const rectRight = rectLeft + group.width;
-           const rectBottom = rectTop + group.height;
-
+           const rect = group.container.getBoundingClientRect();
            // Broad phase check: is mouse near this container?
-           if (clientX < rectLeft - 100 || clientX > rectRight + 100 || 
-               clientY < rectTop - 100 || clientY > rectBottom + 100) {
+           if (clientX < rect.left - 100 || clientX > rect.right + 100 || 
+               clientY < rect.top - 100 || clientY > rect.bottom + 100) {
               return;
            }
            
            // Narrow phase: check each cached character
            group.chars.forEach(char => {
-              const cx = rectLeft + char.cx;
-              const cy = rectTop + char.cy;
+              const charRect = char.el.getBoundingClientRect();
+              const cx = charRect.left + charRect.width / 2;
+              const cy = charRect.top + charRect.height / 2;
               const dist = Math.sqrt(Math.pow(clientX - cx, 2) + Math.pow(clientY - cy, 2));
 
               if (dist < minDistance) {
@@ -926,8 +924,11 @@ export default function Overlay() {
       if (useStore.getState().viewMode === 'map') return; // Only run in scroll mode
       
       cachedBgChars.forEach(char => {
-        const dx = e.clientX - char.cx;
-        const dy = e.clientY - char.cy;
+        const rect = char.el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
         if (dist < 350) {
@@ -979,8 +980,8 @@ export default function Overlay() {
 
   return (
     <div className="overlay-wrapper" ref={overlayRef}>
-      {/* Injecting the exact Vanilla HTML layout safely */}
-      <div dangerouslySetInnerHTML={{ __html: layoutHTML }} />
+      {/* Injecting the exact Vanilla HTML layout safely via pure component */}
+      <StaticLayout />
 
       {/* Progress DNA Bar (Custom scrollbar as requested) */}
       <div id="dna-bar" style={{
@@ -1028,4 +1029,6 @@ export default function Overlay() {
       </div>
     </div>
   );
-}
+});
+
+export default Overlay;

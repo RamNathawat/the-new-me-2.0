@@ -27,17 +27,8 @@ export default function Scene() {
     >
       <CameraSetup />
       <Suspense fallback={null}>
-        <Environment frames={1} resolution={128}>
-          <group>
-            <directionalLight position={[5, 10, 8]} intensity={3} color="#FFF8F0" />
-            <directionalLight position={[-6, 4, -3]} intensity={1.5} color="#D4E8DF" />
-            <mesh scale={100}>
-              <sphereGeometry args={[1, 16, 16]} />
-              <meshBasicMaterial color="#F5E6D3" side={THREE.BackSide} />
-            </mesh>
-          </group>
-        </Environment>
-
+        <Environment preset="city" environmentIntensity={0.6} />
+        
         <ambientLight intensity={1.5} color="#F5E6D3" />
         <directionalLight position={[5, 10, 8]} intensity={3.0} color="#FFF8F0" />
         <directionalLight position={[-6, 4, -3]} intensity={0.8} color="#D4E8DF" />
