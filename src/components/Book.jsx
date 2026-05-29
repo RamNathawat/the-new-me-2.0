@@ -14,7 +14,7 @@ const POSE = {
   hero: { x: 0, y: 0, z: 0, rx: -0.08, ry: -0.25, rz: 0.05, sc: 1.1 },
   side: { x: -1.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 },
   sideRight: { x: 0.85, y: 0.05, z: 0, rx: -0.04, ry: 0.15, rz: -0.03, sc: 0.75 },
-  fill: { x: -36.6, y: 36.6, z: -2.0, rx: 0, ry: 0, rz: 0, sc: 55.0 }, // Scaled up but targeting the exact same beige corner as original
+  fill: { x: -15, y: 36.6, z: -2.0, rx: 0, ry: 0, rz: 0, sc: 55.0 }, // Scaled up but targeting the exact same beige corner as original
 };
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -27,7 +27,7 @@ function lerpPose(a, b, t) {
 }
 
 export default function Book() {
-  const { scene } = useGLTF('/book.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+  const { scene } = useGLTF('/book-updated.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
   const group = useRef()
   const setIsMapVisible = useStore(state => state.setIsMapVisible);
   const wasVisibleRef = useRef(false);
@@ -179,20 +179,20 @@ export default function Book() {
     group.current.visible = true;
 
     // ── Smooth scroll velocity (for tilt reactivity) ──
-    smoothScrollVel.current = lerp(smoothScrollVel.current, scrollVel.current, 0.08);
+    smoothScrollVel.current = THREE.MathUtils.damp(smoothScrollVel.current, scrollVel.current, 5, delta);
     // Decay raw scroll velocity so it doesn't persist
-    scrollVel.current *= 0.9;
+    scrollVel.current = THREE.MathUtils.damp(scrollVel.current, 0, 6.3, delta);
 
     // ── Orbit strength recovery ──
     // After scrolling stops, gradually restore the ambient orbit
     const timeSinceScroll = performance.now() - lastScrollTime.current;
     if (timeSinceScroll > 300) {
-      orbitStrength.current = lerp(orbitStrength.current, 1, 0.008);
+      orbitStrength.current = THREE.MathUtils.damp(orbitStrength.current, 1, 0.5, delta);
     }
 
     // ── Mouse smoothing ──
-    mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
-    mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
+    mouseSmooth.current.x = THREE.MathUtils.damp(mouseSmooth.current.x, mouse.current.x, 4.3, delta);
+    mouseSmooth.current.y = THREE.MathUtils.damp(mouseSmooth.current.y, mouse.current.y, 4.3, delta);
 
     // Apply the cinematic "snappy" physics curve to ALL scroll transitions
     const snappyToSide = CustomEase.get("snappy")(s.toSide);
@@ -263,19 +263,20 @@ export default function Book() {
     // ══════════════════════════════════════════════════
     // SMOOTH PHYSICS — Premium, heavy weight (Zero Bounce)
     // ══════════════════════════════════════════════════
-    const smoothing = 0.05; // 5% interpolation per frame, completely eliminates overshoot
+    const dampLambda = 3.5; // Framerate-independent damping parameter
 
-    cur.current.x += (target.x - cur.current.x) * smoothing;
-    cur.current.y += (target.y - cur.current.y) * smoothing;
-    cur.current.z += (target.z - cur.current.z) * smoothing;
-    cur.current.rx += (target.rx - cur.current.rx) * smoothing;
-    cur.current.ry += (target.ry - cur.current.ry) * smoothing;
-    cur.current.rz += (target.rz - cur.current.rz) * smoothing;
-    cur.current.sc += (target.sc - cur.current.sc) * smoothing;
+    cur.current.x = THREE.MathUtils.damp(cur.current.x, target.x, dampLambda, delta);
+    cur.current.y = THREE.MathUtils.damp(cur.current.y, target.y, dampLambda, delta);
+    cur.current.z = THREE.MathUtils.damp(cur.current.z, target.z, dampLambda, delta);
+    cur.current.rx = THREE.MathUtils.damp(cur.current.rx, target.rx, dampLambda, delta);
+    cur.current.ry = THREE.MathUtils.damp(cur.current.ry, target.ry, dampLambda, delta);
+    cur.current.rz = THREE.MathUtils.damp(cur.current.rz, target.rz, dampLambda, delta);
+    cur.current.sc = THREE.MathUtils.damp(cur.current.sc, target.sc, dampLambda, delta);
 
     group.current.position.set(cur.current.x, cur.current.y, cur.current.z);
     group.current.rotation.set(cur.current.rx, cur.current.ry, cur.current.rz);
-    group.current.scale.setScalar(cur.current.sc);
+    // Adjust book length (Y-axis) based on feedback
+    group.current.scale.set(cur.current.sc, cur.current.sc * 0.935, cur.current.sc);
   });
 
   return (
@@ -286,4 +287,4 @@ export default function Book() {
   )
 }
 
-useGLTF.preload('/book.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+useGLTF.preload('/book-updated.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
