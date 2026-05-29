@@ -100,7 +100,7 @@ const Overlay = memo(function Overlay() {
         trigger: '#s-hero',
         start: 'top top',
         end: 'bottom top',
-        scrub: 2.5
+        scrub: true
       }
     });
 
@@ -154,7 +154,7 @@ const Overlay = memo(function Overlay() {
         trigger: '#scroll-container',
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 2.5
+        scrub: true
       }
     });
 

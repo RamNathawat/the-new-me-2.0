@@ -104,28 +104,28 @@ export default function Book() {
       // Book: Hero → Side
       ScrollTrigger.create({
         trigger: '#s-story-1', start: 'top 85%', end: 'top 25%',
-        scrub: 1.8,
+        scrub: true,
         onUpdate: (s) => { scrollState.current.toSide = s.progress; }
       });
 
       // Book: Side (Left) → SideRight (Right)
       ScrollTrigger.create({
         trigger: '#s-story-2', start: 'top 85%', end: 'top 25%',
-        scrub: 1.8,
+        scrub: true,
         onUpdate: (s) => { scrollState.current.toSideRight = s.progress; }
       });
 
       // Book Zoom: completes BEFORE map section reaches top
       ScrollTrigger.create({
         trigger: '#s-map', start: 'top 100%', end: 'top 30%',
-        scrub: 2,
+        scrub: true,
         onUpdate: (s) => { scrollState.current.toFill = s.progress; }
       });
 
       // Book Fade out for Map (Starts EXACTLY when zoom completes, so it covers screen fully before fading)
       ScrollTrigger.create({
         trigger: '#s-map', start: 'top 30%', end: 'top 10%',
-        scrub: 1.5,
+        scrub: true,
         onUpdate: (s) => { 
           scrollState.current.toMapFade = s.progress; 
           
@@ -138,10 +138,10 @@ export default function Book() {
         }
       });
 
-      // Book Author entry (Starts zooming out as soon as the section enters the bottom of the screen)
+      // Book Author entry (Starts zooming out after map fades out)
       ScrollTrigger.create({
-        trigger: '#s-author', start: 'top 100%', end: 'top 60%',
-        scrub: 1.5,
+        trigger: '#s-author', start: 'top 70%', end: 'top 30%',
+        scrub: true,
         onUpdate: (s) => { 
           scrollState.current.toAuthor = s.progress; 
         }

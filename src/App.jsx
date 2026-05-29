@@ -1,10 +1,25 @@
-import { Suspense, useEffect, useState, lazy } from 'react'
+import { Suspense, useEffect, useState, lazy, useRef } from 'react'
 import { ReactLenis } from 'lenis/react'
+import gsap from 'gsap'
 import Overlay from './components/Overlay.jsx'
 
 const Scene = lazy(() => import('./components/Scene.jsx'));
 
 export default function App() {
+  const lenisRef = useRef(null);
+
+  // Sync ReactLenis with GSAP Ticker for perfect 60fps fast scroll
+  useEffect(() => {
+    function update(time) {
+      lenisRef.current?.lenis?.raf(time * 1000)
+    }
+    gsap.ticker.add(update)
+    gsap.ticker.lagSmoothing(0) // Prevent GSAP from trying to auto-adjust frames, which breaks Lenis
+    return () => {
+      gsap.ticker.remove(update)
+    }
+  }, [])
+
   // Defer 3D canvas rendering to prioritize HTML LCP
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -14,7 +29,7 @@ export default function App() {
   }, []);
 
   return (
-    <ReactLenis root options={{ smoothWheel: true, duration: 1.4 }}>
+    <ReactLenis root ref={lenisRef} autoRaf={false} options={{ smoothWheel: true, duration: 1.2 }}>
       <div className="app-container">
         
         {/* R3F Canvas - Deferred until after initial paint */}
