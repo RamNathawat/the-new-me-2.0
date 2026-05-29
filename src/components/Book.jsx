@@ -12,7 +12,7 @@ const POSE = {
   hero: { x: 0, y: 0, z: 0, rx: -0.08, ry: -0.25, rz: 0.05, sc: 1.1 },
   side: { x: -1.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 },
   sideRight: { x: 0.85, y: 0.05, z: 0, rx: -0.04, ry: 0.15, rz: -0.03, sc: 0.75 },
-  fill: { x: -28.0, y: 28.0, z: 1.5, rx: 0, ry: 0, rz: 0, sc: 42.0 }, // Zooming deep into a blank beige corner to create the Match Cut
+  fill: { x: -36.6, y: 36.6, z: -2.0, rx: 0, ry: 0, rz: 0, sc: 55.0 }, // Scaled up but targeting the exact same beige corner as original
 };
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -132,9 +132,9 @@ export default function Book() {
         onUpdate: (s) => { scrollState.current.toFill = s.progress; }
       });
 
-      // Book Fade out for Map (Fade out while zooming in to prevent clipping)
+      // Book Fade out for Map (Starts EXACTLY when zoom completes, so it covers screen fully before fading)
       ScrollTrigger.create({
-        trigger: '#s-map', start: 'top 50%', end: 'top 30%',
+        trigger: '#s-map', start: 'top 30%', end: 'top 10%',
         scrub: 1.5,
         onUpdate: (s) => { 
           scrollState.current.toMapFade = s.progress; 
@@ -150,7 +150,7 @@ export default function Book() {
 
       // Book Author entry
       ScrollTrigger.create({
-        trigger: '#s-author', start: 'top 90%', end: 'top 40%',
+        trigger: '#s-author', start: 'top 50%', end: 'top 15%',
         scrub: 1.5,
         onUpdate: (s) => { 
           scrollState.current.toAuthor = s.progress; 
@@ -170,10 +170,11 @@ export default function Book() {
     const opacityAmt = Math.max(0, Math.min(1, 1 - s.toMapFade + s.toAuthor));
     
     // Apply CSS opacity to the canvas container to gracefully fade out 
-    // the entire 3D scene (avoiding ugly internal mesh intersections)
+    // the entire 3D scene before the camera clips into the book geometry.
     const canvasEl = document.getElementById('canvas-container');
     if (canvasEl) {
       canvasEl.style.opacity = opacityAmt;
+      canvasEl.style.filter = 'none'; // Ensure blur is removed
     }
 
     // Skip rendering entirely when invisible

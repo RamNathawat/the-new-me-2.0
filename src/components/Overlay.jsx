@@ -95,6 +95,19 @@ const Overlay = memo(function Overlay() {
       }
     });
 
+    // Fade out Story 2 text when Map section enters the viewport
+    // This prevents the text from overlapping the Map pillars
+    gsap.to('#story-2-text', {
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#s-map',
+        start: 'top 80%',
+        end: 'top 40%',
+        scrub: true
+      }
+    });
+
     // DNA scrollbar logic
     gsap.to('#dna-fill', {
       height: '100%',
