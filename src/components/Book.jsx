@@ -30,6 +30,7 @@ export default function Book() {
   const { scene } = useGLTF('/book-updated.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
   const group = useRef()
   const setIsMapVisible = useStore(state => state.setIsMapVisible);
+  const isLoaded = useStore(state => state.isLoaded);
   const wasVisibleRef = useRef(false);
   
   // State refs for animation
@@ -46,6 +47,7 @@ export default function Book() {
   const mouse = useRef({ x: 0, y: 0 });
   const mouseSmooth = useRef({ x: 0, y: 0 });
   const introAnim = useRef({ y: -1.0, rx: 0.15, ry: 0.15 });
+  const introProgress = useRef(0);
 
   // Scroll velocity tracking
   const scrollVel = useRef(0);
@@ -82,24 +84,33 @@ export default function Book() {
   }, []);
 
   useLayoutEffect(() => {
-    // Center the geometry like the original script
+    // Only center the geometry ONCE to prevent it from shifting up during hot-reloads or state changes
+    if (scene.userData.centered) return;
+
+    // Temporarily reset group transform so we get a clean, un-animated bounding box
+    const oldPos = group.current.position.clone();
+    const oldScale = group.current.scale.clone();
+    
+    group.current.position.set(0, 0, 0);
+    group.current.scale.set(1, 1, 1);
+    group.current.updateMatrixWorld(true);
+
     const box = new THREE.Box3().setFromObject(scene);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
+    const center = box.getCenter(new THREE.Vector3());
+    
+    // Book base needs to sit properly
     scene.position.sub(center);
+    scene.userData.centered = true;
+
+    // Restore transforms
+    group.current.position.copy(oldPos);
+    group.current.scale.copy(oldScale);
+    group.current.updateMatrixWorld(true);
   }, [scene])
 
-  useLayoutEffect(() => {
-    // Majestic glide upward with subtle tilt correction on load
-    gsap.to(introAnim.current, {
-      y: 0,
-      rx: 0,
-      ry: 0,
-      duration: 2.5,
-      ease: 'power3.out',
-      delay: 0.2
-    });
 
+
+  useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       // Book: Hero → Side
       ScrollTrigger.create({
@@ -178,23 +189,37 @@ export default function Book() {
     }
     group.current.visible = true;
 
+    // Sync intro animation perfectly with the render loop to prevent GSAP ticker-desync jitter
+    if (isLoaded && introProgress.current < 1) {
+      introProgress.current += delta * 0.4; // 2.5s duration
+      if (introProgress.current > 1) introProgress.current = 1;
+      
+      const t = introProgress.current;
+      const easeOutCubic = 1 - Math.pow(1 - t, 3);
+      
+      introAnim.current.y = -1.0 * (1 - easeOutCubic);
+      introAnim.current.rx = 0.15 * (1 - easeOutCubic);
+      introAnim.current.ry = 0.15 * (1 - easeOutCubic);
+    }
+
     // ── Smooth scroll velocity (for tilt reactivity) ──
-    smoothScrollVel.current = THREE.MathUtils.damp(smoothScrollVel.current, scrollVel.current, 5, delta);
+    smoothScrollVel.current = lerp(smoothScrollVel.current, scrollVel.current, 0.08);
     // Decay raw scroll velocity so it doesn't persist
-    scrollVel.current = THREE.MathUtils.damp(scrollVel.current, 0, 6.3, delta);
+    scrollVel.current *= 0.9;
 
     // ── Orbit strength recovery ──
     // After scrolling stops, gradually restore the ambient orbit
     const timeSinceScroll = performance.now() - lastScrollTime.current;
     if (timeSinceScroll > 300) {
-      orbitStrength.current = THREE.MathUtils.damp(orbitStrength.current, 1, 0.5, delta);
+      orbitStrength.current = lerp(orbitStrength.current, 1, 0.008);
     }
 
     // ── Mouse smoothing ──
-    mouseSmooth.current.x = THREE.MathUtils.damp(mouseSmooth.current.x, mouse.current.x, 4.3, delta);
-    mouseSmooth.current.y = THREE.MathUtils.damp(mouseSmooth.current.y, mouse.current.y, 4.3, delta);
+    // ── Mouse smoothing ──
+    mouseSmooth.current.x = lerp(mouseSmooth.current.x, mouse.current.x, 0.07);
+    mouseSmooth.current.y = lerp(mouseSmooth.current.y, mouse.current.y, 0.07);
 
-    // Apply the cinematic "snappy" physics curve to ALL scroll transitions
+    // Apply the cinematic "snappy" curve to ALL scroll transitions
     const snappyToSide = CustomEase.get("snappy")(s.toSide);
     const snappyToSideRight = CustomEase.get("snappy")(s.toSideRight);
     const snappyToFill = CustomEase.get("snappy")(s.toFill);
@@ -205,11 +230,6 @@ export default function Book() {
     const atSideRight = lerpPose(atSide, POSE.sideRight, snappyToSideRight);
     const atFill = lerpPose(atSideRight, POSE.fill, snappyToFill);
     let target = lerpPose(atFill, POSE.side, snappyAuthorProgress);
-
-    // Add intro animation (majestic glide)
-    target.y += introAnim.current.y;
-    target.rx += introAnim.current.rx;
-    target.ry += introAnim.current.ry;
 
     // ── How "zoomed-in" are we? ──
     const fillAmt = s.toFill * (1 - s.toAuthor);
@@ -263,18 +283,23 @@ export default function Book() {
     // ══════════════════════════════════════════════════
     // SMOOTH PHYSICS — Premium, heavy weight (Zero Bounce)
     // ══════════════════════════════════════════════════
-    const dampLambda = 3.5; // Framerate-independent damping parameter
+    const smoothing = 0.08; 
 
-    cur.current.x = THREE.MathUtils.damp(cur.current.x, target.x, dampLambda, delta);
-    cur.current.y = THREE.MathUtils.damp(cur.current.y, target.y, dampLambda, delta);
-    cur.current.z = THREE.MathUtils.damp(cur.current.z, target.z, dampLambda, delta);
-    cur.current.rx = THREE.MathUtils.damp(cur.current.rx, target.rx, dampLambda, delta);
-    cur.current.ry = THREE.MathUtils.damp(cur.current.ry, target.ry, dampLambda, delta);
-    cur.current.rz = THREE.MathUtils.damp(cur.current.rz, target.rz, dampLambda, delta);
-    cur.current.sc = THREE.MathUtils.damp(cur.current.sc, target.sc, dampLambda, delta);
+    cur.current.x = lerp(cur.current.x, target.x, smoothing);
+    cur.current.y = lerp(cur.current.y, target.y, smoothing);
+    cur.current.z = lerp(cur.current.z, target.z, smoothing);
+    cur.current.rx = lerp(cur.current.rx, target.rx, smoothing);
+    cur.current.ry = lerp(cur.current.ry, target.ry, smoothing);
+    cur.current.rz = lerp(cur.current.rz, target.rz, smoothing);
+    cur.current.sc = lerp(cur.current.sc, target.sc, smoothing);
+    
+    // Apply intro animation directly on top of the smoothed coordinates to prevent double-easing lag
+    const finalY = cur.current.y + introAnim.current.y;
+    const finalRX = cur.current.rx + introAnim.current.rx;
+    const finalRY = cur.current.ry + introAnim.current.ry;
 
-    group.current.position.set(cur.current.x, cur.current.y, cur.current.z);
-    group.current.rotation.set(cur.current.rx, cur.current.ry, cur.current.rz);
+    group.current.position.set(cur.current.x, finalY, cur.current.z);
+    group.current.rotation.set(finalRX, finalRY, cur.current.rz);
     // Adjust book length (Y-axis) based on feedback
     group.current.scale.set(cur.current.sc, cur.current.sc * 0.935, cur.current.sc);
   });

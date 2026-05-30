@@ -27,7 +27,6 @@ export default function Scene() {
     >
       <CameraSetup />
       <Suspense fallback={null}>
-        <Environment preset="city" environmentIntensity={0.6} />
         
         <ambientLight intensity={1.5} color="#F5E6D3" />
         <directionalLight position={[5, 10, 8]} intensity={3.0} color="#FFF8F0" />

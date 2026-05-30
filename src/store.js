@@ -13,4 +13,6 @@ export const useStore = create((set) => ({
   setContactAngle: (angle) => set({ contactAngle: angle }),
   pullingPillar: null,
   setPullingPillar: (pillarCoords) => set({ pullingPillar: pillarCoords }),
+  isLoaded: false,
+  setIsLoaded: (loaded) => set({ isLoaded: loaded }),
 }))
