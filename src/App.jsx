@@ -26,7 +26,11 @@ export default function App() {
     } else {
       document.body.style.overflow = '';
       lenisRef.current?.lenis?.start();
-      ScrollTrigger.refresh();
+      // Wait for DOM layout to recalculate heights after removing overflow:hidden
+      // Otherwise GSAP caches all snap points at Y=0, causing random scrolls to top!
+      setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 100);
     }
   }, [isLoaded]);
 
