@@ -27,7 +27,7 @@ function lerpPose(a, b, t) {
 }
 
 export default function Book() {
-  const { scene } = useGLTF('/book-updated.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+  const { scene } = useGLTF('/new-book-model.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
   const group = useRef()
   const setIsMapVisible = useStore(state => state.setIsMapVisible);
   const isLoaded = useStore(state => state.isLoaded);
@@ -302,8 +302,8 @@ export default function Book() {
 
     group.current.position.set(cur.current.x, finalY, cur.current.z);
     group.current.rotation.set(finalRX, finalRY, cur.current.rz);
-    // Adjust book length (Y-axis) based on feedback
-    group.current.scale.set(cur.current.sc, cur.current.sc * 0.935, cur.current.sc);
+    // Adjust book length (Y-axis) increased by 10% based on feedback
+    group.current.scale.set(cur.current.sc, cur.current.sc * 1.03, cur.current.sc);
   });
 
   return (
@@ -314,4 +314,4 @@ export default function Book() {
   )
 }
 
-useGLTF.preload('/book-updated.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+useGLTF.preload('/new-book-model.glb', 'https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
