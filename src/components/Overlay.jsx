@@ -61,7 +61,7 @@ const Overlay = memo(function Overlay() {
     }
 
     // Premium Snappy Clip-Path Reveal for all text and author elements
-    gsap.utils.toArray('.headline, .story__panel--b, .tr, .label').forEach((el) => {
+    gsap.utils.toArray('.headline, .story__panel--b, .tr, .label, .author-signature').forEach((el) => {
       gsap.fromTo(el, 
         { clipPath: 'inset(100% 0% 0% 0%)', opacity: 0, y: 30 },
         { 
@@ -78,41 +78,15 @@ const Overlay = memo(function Overlay() {
       );
     });
 
-    // Hero Ink Wipe Reveal
-    const heroTl = gsap.timeline({ delay: 0.2 });
-    
-    // The text reveal precisely wipes into view while coalescing from liquid
-    heroTl.fromTo('#hero-reveal', 
-      { clipPath: 'inset(0 100% 0 0)' }, 
-      { clipPath: 'inset(0 0% 0 0)', duration: 2.5, ease: 'expo.inOut' }
-    );
-    
-    const heroText = document.getElementById('hero-text');
-    if (heroText) {
-      heroText.style.filter = 'url(#liquid-text)';
-      heroTl.fromTo('#liquid-disp',
-        { attr: { scale: 120 } },
-        { 
-          attr: { scale: 0 }, 
-          duration: 3.5, 
-          ease: 'power3.out',
-          onComplete: () => {
-            // CRITICAL PERF FIX: Remove the expensive SVG filter after animation finishes
-            heroText.style.filter = 'none';
-          }
-        },
-        "-=2.5"
-      );
-    }
+    // Hero botanical drawing and signature animations removed because the elements were replaced by a static illustration
 
-    // Scroll-driven parallax for the huge background text
-    gsap.to('#hero-text', {
-      x: '-30vw',
-      opacity: 0,
+    // Scroll-driven parallax for decorative vectors (if any remain)
+    gsap.to('.vector-leaf-2', {
+      y: '-25vh',
       ease: 'none',
       scrollTrigger: {
-        trigger: '#s-hero',
-        start: 'top top',
+        trigger: '#s-story-1',
+        start: 'top bottom',
         end: 'bottom top',
         scrub: true
       }
@@ -147,8 +121,8 @@ const Overlay = memo(function Overlay() {
     // Lock the 3D canvas to the DOM so the book scrolls away naturally
     // instead of floating in the middle of the screen forever.
     ScrollTrigger.create({
-      trigger: '#s-author',
-      start: 'top -30%', // Lock the canvas 30% later so the book sits 30% lower
+      trigger: '#s-boxes',
+      start: 'top bottom', // Start locking when boxes section comes up
       end: 'max',
       onUpdate: (self) => {
         const canvasEl = document.getElementById('canvas-container');

@@ -46,7 +46,7 @@ export default function Book() {
   const vel = useRef({ x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sc: 0 });
   const mouse = useRef({ x: 0, y: 0 });
   const mouseSmooth = useRef({ x: 0, y: 0 });
-  const introAnim = useRef({ y: -1.0, rx: 0.15, ry: 0.15 });
+  const introAnim = useRef({ y: -1.0, rx: 0.25, ry: 0.25 });
   const introProgress = useRef(0);
 
   // Scroll velocity tracking
@@ -95,12 +95,58 @@ export default function Book() {
     group.current.scale.set(1, 1, 1);
     group.current.updateMatrixWorld(true);
 
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
     const box = new THREE.Box3().setFromObject(scene);
     const center = box.getCenter(new THREE.Vector3());
     
     // Book base needs to sit properly
     scene.position.sub(center);
-    scene.userData.centered = true;
+    scene.userData.centeredV2 = true;
+
+    // ── Apply concave cover curve ──
+    // Modify local geometry directly since it's already centered
+    scene.traverse((child) => {
+      if (!child.isMesh || !child.geometry) return;
+      const geo = child.geometry;
+      const pos = geo.attributes.position;
+      if (!pos) return;
+
+      geo.computeBoundingBox();
+      if (!geo.boundingBox) return;
+      
+      const minX = geo.boundingBox.min.x;
+      const width = geo.boundingBox.max.x - geo.boundingBox.min.x;
+      
+      // Increased depth for a pronounced magazine-like droop
+      const CURVE_DEPTH = width * 0.15;
+
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const z = pos.getZ(i);
+        
+        // Normalize x from 0 to 1 across the book
+        const nx = width > 0 ? (x - minX) / width : 0.5;
+        
+        // Droop heavily on the right side
+        const curveAmount = Math.pow(nx, 2.5);
+        
+        // Modify local Z. Subtracting pushes it "backwards" locally
+        pos.setZ(i, z - CURVE_DEPTH * curveAmount);
+      }
+      
+      pos.needsUpdate = true;
+      if (geo.computeVertexNormals) {
+        geo.computeVertexNormals();
+      }
+      geo.computeBoundingBox();
+      geo.computeBoundingSphere();
+    });
 
     // Restore transforms
     group.current.position.copy(oldPos);
@@ -126,35 +172,11 @@ export default function Book() {
         onUpdate: (s) => { scrollState.current.toSideRight = s.progress; }
       });
 
-      // Book Zoom: completes BEFORE map section reaches top
+      // Map visibility for particles
       ScrollTrigger.create({
-        trigger: '#s-map', start: 'top 100%', end: 'top 30%',
-        scrub: true,
-        onUpdate: (s) => { scrollState.current.toFill = s.progress; }
-      });
-
-      // Book Fade out for Map (Starts EXACTLY when zoom completes, so it covers screen fully before fading)
-      ScrollTrigger.create({
-        trigger: '#s-map', start: 'top 30%', end: 'top 10%',
-        scrub: true,
-        onUpdate: (s) => { 
-          scrollState.current.toMapFade = s.progress; 
-          
-          // Toggle the global state to restrict particle rendering
-          const mapVisible = s.progress > 0;
-          if (wasVisibleRef.current !== mapVisible) {
-            wasVisibleRef.current = mapVisible;
-            setIsMapVisible(mapVisible);
-          }
-        }
-      });
-
-      // Book Author entry (Starts zooming out after map fades out)
-      ScrollTrigger.create({
-        trigger: '#s-author', start: 'top 70%', end: 'top 30%',
-        scrub: true,
-        onUpdate: (s) => { 
-          scrollState.current.toAuthor = s.progress; 
+        trigger: '#s-map', start: 'top 50%', end: 'bottom top',
+        onToggle: (self) => {
+          setIsMapVisible(self.isActive);
         }
       });
     });
@@ -166,27 +188,6 @@ export default function Book() {
     const t = state.clock.elapsedTime;
     const s = scrollState.current;
     
-    // Calculate global opacity for map fade transition
-    // Map section fades it out, Author section fades it back in (accelerated so it's solid before shrinking too much)
-    const opacityAmt = Math.max(0, Math.min(1, 1 - s.toMapFade + (s.toAuthor * 5)));
-    
-    // Apply CSS opacity and blur to the canvas container
-    // Blur is tied to physical proximity (toFill) so it blurs BEFORE fading out!
-    const closeToCamera = Math.max(0, s.toFill - s.toAuthor);
-    // Start the blur earlier (at 50% of the zoom) and ramp it up smoothly
-    const blurAmt = Math.max(0, (closeToCamera - 0.5) * 2) * 30; // Max 30px blur
-    
-    const canvasEl = document.getElementById('canvas-container');
-    if (canvasEl) {
-      canvasEl.style.opacity = opacityAmt;
-      canvasEl.style.filter = blurAmt > 0.1 ? `blur(${blurAmt}px)` : 'none';
-    }
-
-    // Skip rendering entirely when invisible
-    if (opacityAmt < 0.01) {
-      group.current.visible = false;
-      return;
-    }
     group.current.visible = true;
 
     // Sync intro animation perfectly with the render loop to prevent GSAP ticker-desync jitter
@@ -222,17 +223,12 @@ export default function Book() {
     // Apply the cinematic "snappy" curve to ALL scroll transitions
     const snappyToSide = CustomEase.get("snappy")(s.toSide);
     const snappyToSideRight = CustomEase.get("snappy")(s.toSideRight);
-    const snappyToFill = CustomEase.get("snappy")(s.toFill);
-    const snappyAuthorProgress = CustomEase.get("snappy")(s.toAuthor);
-
-    // Pose interpolation: hero → side → sideRight → fill → side(author)
+    // Pose interpolation: hero → side → sideRight
     const atSide = lerpPose(POSE.hero, POSE.side, snappyToSide);
-    const atSideRight = lerpPose(atSide, POSE.sideRight, snappyToSideRight);
-    const atFill = lerpPose(atSideRight, POSE.fill, snappyToFill);
-    let target = lerpPose(atFill, POSE.side, snappyAuthorProgress);
+    let target = lerpPose(atSide, POSE.sideRight, snappyToSideRight);
 
     // ── How "zoomed-in" are we? ──
-    const fillAmt = s.toFill * (1 - s.toAuthor);
+    const fillAmt = 0; // Removed zoom
 
     // ══════════════════════════════════════════════════
     // FLOATING MEDITATION — Lemniscate Orbital Drift

@@ -11,12 +11,12 @@
   <!-- Sticky Header -->
   <header id="site-header" class="site-header">
     <nav class="header__nav">
-      <a href="#s-chapters" class="nav-pill" id="nav-explore">Explore</a>
-      <a href="#s-story-1" class="nav-pill" id="nav-about">About the Book</a>
+      <a href="#s-chapters" class="nav-pill" id="nav-explore">CHAPTER SUMMARIES</a>
+      <a href="#s-story-1" class="nav-pill" id="nav-about">ABOUT THE BOOK ✓</a>
     </nav>
     <a href="#" class="header__cta" id="header-cta">
       <div class="header__cta-thumb"></div>
-      Buy Now
+      DOWNLOAD
     </a>
   </header>
 
@@ -24,28 +24,17 @@
 
     <!-- ════════════ HERO ════════════ -->
     <section id="s-hero" class="s s--hero snap-point">
-      <div class="atmo__orbs" aria-hidden="true">
-        <div class="atmo__orb atmo__orb--1"></div>
-        <div class="atmo__orb atmo__orb--2"></div>
-        <div class="atmo__orb atmo__orb--3"></div>
+      <!-- Giant background text -->
+      <div class="hero__giant-text" aria-hidden="true">
+        <span class="giant-word giant-word--new">NEW</span>
+        <span class="giant-word giant-word--me">ME</span>
       </div>
-      <div class="atmo__ring" aria-hidden="true"></div>
-      <div class="hero__bg-reveal" id="hero-reveal">
-        <div class="hero__bg-text" id="hero-text" aria-hidden="true">
-          <span class="bg-char">T</span><span class="bg-char">H</span><span class="bg-char">E</span>
-          <br>
-          <span class="bg-char">N</span><span class="bg-char">E</span><span class="bg-char">W</span>
-          <br>
-          <span class="bg-char">M</span><span class="bg-char">E</span>
-        </div>
-      </div>
-      <div class="scroll-cue" id="scroll-cue">
-        <span>Scroll</span>
-        <div class="scroll-cue__line"></div>
+
+      <!-- Focused Illustration -->
+      <div class="hero__corner-illustration" aria-hidden="true">
+        <img src="/hero-illustration.png" alt="" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply;" />
       </div>
     </section>
-
-    <!-- ════════════ STORY 1 ════════════ -->
     <section id="s-story-1" class="s s--story s--story-pinned snap-point">
       <div class="story__sticky">
         <div class="story__grid">
@@ -62,6 +51,22 @@
             </div>
           </div>
         </div>
+      </div>
+      <!-- Decorative Vectors -->
+      <div class="vector-dec vector-leaf-2" aria-hidden="true">
+        <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- A more intricate, organic botanical drawing -->
+          <path class="story-draw-path" d="M50 100 C 50 80, 40 60, 50 40 C 60 20, 50 10, 50 0" stroke="var(--accent-red)" stroke-width="0.8" stroke-linecap="round" />
+          <path class="story-draw-path" d="M50 80 C 70 70, 80 50, 70 30 C 60 10, 80 20, 90 10" stroke="var(--accent-red)" stroke-width="0.5" stroke-linecap="round" />
+          <path class="story-draw-path" d="M50 60 C 30 50, 20 40, 30 20 C 40 0, 20 10, 10 20" stroke="var(--accent-red)" stroke-width="0.5" stroke-linecap="round" />
+          <path class="story-draw-path" d="M70 40 C 85 45, 95 35, 90 25 C 80 15, 95 10, 100 20" stroke="var(--accent-red)" stroke-width="0.4" stroke-linecap="round" />
+          <path class="story-draw-path" d="M30 35 C 15 30, 5 40, 10 50 C 20 60, 5 65, 0 55" stroke="var(--accent-red)" stroke-width="0.4" stroke-linecap="round" />
+          <circle cx="50" cy="0" r="1.5" fill="var(--accent-red)" opacity="0.6"/>
+          <circle cx="90" cy="10" r="1" fill="var(--accent-red)" opacity="0.6"/>
+          <circle cx="10" cy="20" r="1" fill="var(--accent-red)" opacity="0.6"/>
+          <circle cx="100" cy="20" r="0.8" fill="var(--accent-red)" opacity="0.6"/>
+          <circle cx="0" cy="55" r="0.8" fill="var(--accent-red)" opacity="0.6"/>
+        </svg>
       </div>
     </section>
 
@@ -82,6 +87,22 @@
             </div>
           </div>
         </div>
+      </div>
+      
+      <!-- Author Signature -->
+      <div class="author-signature" id="story-signature">
+        <div class="signature-line"></div>
+        <span class="signature-text">by Gagan Dhawan</span>
+      </div>
+    </section>
+
+    <!-- ════════════ BOXES ════════════ -->
+    <section id="s-boxes" class="s s--boxes snap-point">
+      <div class="boxes__container">
+        <div class="hero__box"><img src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&q=80&w=400&h=600" alt="Placeholder 1" /></div>
+        <div class="hero__box"><img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=400&h=600" alt="Placeholder 2" /></div>
+        <div class="hero__box"><img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=400&h=600" alt="Placeholder 3" /></div>
+        <div class="hero__box"><img src="https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&q=80&w=400&h=600" alt="Placeholder 4" /></div>
       </div>
     </section>
 

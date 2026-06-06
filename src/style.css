@@ -4,12 +4,11 @@
    ═══════════════════════════════════════════════════ */
 
 :root {
-  --sage: #F9F9F9; /* Paper White */
+  --sage: #a1b8a6; /* Premium Sage Green */
   --sage-deep: #2D5A27; /* Vitality Green */
   --sage-light: #C5D86D; /* Avocado Lime */
-  --cream: #F9F9F9;
-  --cream: #F9F9F9;
-  --warm: #F9F9F9;
+  --cream: #f4f4f0;
+  --warm: #e3dec9;
   --dark: #141303;
   --muted: #5A6B62; /* Darkened from #8A9690 for AA contrast */
   --white: #FFFFFF;
@@ -33,7 +32,7 @@ body {
   font-size: 1.125rem;
   line-height: 1.6;
   color: var(--dark);
-  background: var(--sage);
+  background: var(--cream);
   overflow-x: hidden;
   overscroll-behavior: none;
 }
@@ -216,10 +215,8 @@ a { color:inherit; text-decoration:none; }
 .nav-pill {
   padding: 0.5rem 1.25rem;
   border-radius: 20px;
-  background: rgba(13, 19, 17, 0.05);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: var(--black);
+  background: var(--white);
+  color: var(--dark);
   text-transform: uppercase;
   font-size: 0.75rem;
   font-weight: 700;
@@ -231,9 +228,8 @@ a { color:inherit; text-decoration:none; }
 }
 
 .nav-pill:hover {
-  background: rgba(13, 19, 17, 0.1);
-  filter: drop-shadow(0 0 10px rgba(13, 19, 17, 0.15));
-  color: #fff;
+  background: var(--sage);
+  color: var(--dark);
 }
 
 .header__cta {
@@ -265,9 +261,126 @@ a { color:inherit; text-decoration:none; }
    HERO — Book-First, Sage Atmosphere
    ═══════════════════════════════════════════════════ */
 .s--hero {
-  height: 120vh;
+  height: 100vh;
   background: var(--sage);
-  content-visibility: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero__giant-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4vw;
+  font-family: var(--ff);
+  font-size: clamp(8rem, 22vw, 25rem);
+  font-weight: 800;
+  line-height: 0.8;
+  color: #ffffff;
+  pointer-events: none;
+  z-index: 1; /* Below the book */
+}
+
+.giant-word--new {
+  margin-right: auto;
+}
+
+.giant-word--me {
+  margin-left: auto;
+}
+
+.hero__corner-illustration {
+  position: absolute;
+  top: 15%;
+  right: 15%;
+  width: 180px;
+  height: 180px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hero__corner-illustration img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Removed signature styles */
+
+.hero__content {
+  position: relative;
+  z-index: 10;
+  padding: 2.5rem;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.hero__quote-lockup {
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  pointer-events: auto;
+}
+
+.hero__quote-text {
+  font-family: var(--ff);
+  font-size: 1.1rem;
+  line-height: 1.4;
+  color: var(--dark);
+  font-weight: 400;
+  margin: 0;
+}
+
+.hero__quote-text b {
+  display: block;
+  margin-top: 0.5rem;
+  font-weight: 800;
+}
+
+.s--boxes {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2.5rem;
+  background: var(--cream);
+  position: relative;
+  z-index: 10;
+}
+
+.boxes__container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  height: 60vh;
+}
+
+.hero__box {
+  background: #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hero__box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero__bg-reveal {
@@ -613,7 +726,7 @@ a { color:inherit; text-decoration:none; }
 
 /* ── DARK MODE TRANSITION (MAP SECTION) ───────── */
 .app-container {
-  background-color: var(--sage);
+  background-color: var(--cream);
   transition: background-color 1.5s var(--ease);
 }
 
@@ -789,4 +902,53 @@ a { color:inherit; text-decoration:none; }
   animation: jello-vertical 0.9s both;
 }
 
+/* ── Decorative Vectors & Signature ── */
+.vector-dec {
+  position: absolute;
+  z-index: 0;
+  opacity: 0.2;
+  pointer-events: none;
+  width: 18vw;
+  height: auto;
+  will-change: transform;
+}
+.vector-leaf-1 {
+  top: 15%;
+  left: 5%;
+  animation: floatIdle1 6s ease-in-out infinite;
+}
+.vector-leaf-2 {
+  top: 40%;
+  right: 10%;
+  width: 14vw;
+  animation: floatIdle2 8s ease-in-out infinite;
+}
 
+@keyframes floatIdle1 {
+  0%, 100% { transform: translateY(0) rotate(-15deg); }
+  50% { transform: translateY(-20px) rotate(-10deg); }
+}
+@keyframes floatIdle2 {
+  0%, 100% { transform: translateY(0) rotate(20deg); }
+  50% { transform: translateY(-30px) rotate(15deg); }
+}
+
+.author-signature {
+  position: absolute;
+  bottom: 15vh;
+  right: 10vw;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.signature-line {
+  width: 60px;
+  height: 1px;
+  background: var(--dark);
+}
+.signature-text {
+  font-family: var(--fe);
+  font-style: italic;
+  font-size: 2rem;
+  color: var(--dark);
+}
