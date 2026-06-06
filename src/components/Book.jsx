@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger, CustomEase)
 CustomEase.create("snappy", "M0,0 C0.094,0.026 0.124,0.127 0.157,0.29 0.197,0.486 0.254,0.8 0.348 1 0.456,1 1,1 1,1")
 
 const POSE = {
-  hero: { x: 0, y: 0, z: 0, rx: -0.08, ry: -0.25, rz: 0.05, sc: 1.1 },
+  hero: { x: 0, y: 0, z: 0.5, rx: -0.08, ry: -0.35, rz: 0.05, sc: 1.0 },
   side: { x: -1.0, y: 0.05, z: 0, rx: -0.04, ry: -0.15, rz: 0.03, sc: 0.75 },
   sideRight: { x: 0.85, y: 0.05, z: 0, rx: -0.04, ry: 0.15, rz: -0.03, sc: 0.75 },
   fill: { x: -15, y: 36.6, z: -2.0, rx: 0, ry: 0, rz: 0, sc: 55.0 }, // Scaled up but targeting the exact same beige corner as original
@@ -85,7 +85,7 @@ export default function Book() {
 
   useLayoutEffect(() => {
     // Only center the geometry ONCE to prevent it from shifting up during hot-reloads or state changes
-    if (scene.userData.centered) return;
+    if (scene.userData.centeredV4) return;
 
     // Temporarily reset group transform so we get a clean, un-animated bounding box
     const oldPos = group.current.position.clone();
@@ -95,10 +95,15 @@ export default function Book() {
     group.current.scale.set(1, 1, 1);
     group.current.updateMatrixWorld(true);
 
+    const white = new THREE.Color(1, 1, 1);
     scene.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        // Brighten all materials toward white
+        if (child.material && child.material.color) {
+          child.material.color.lerp(white, 0.5);
+        }
       }
     });
 
@@ -107,7 +112,7 @@ export default function Book() {
     
     // Book base needs to sit properly
     scene.position.sub(center);
-    scene.userData.centeredV2 = true;
+    scene.userData.centeredV4 = true;
 
     // ── Apply concave cover curve ──
     // Modify local geometry directly since it's already centered
@@ -123,7 +128,7 @@ export default function Book() {
       const minX = geo.boundingBox.min.x;
       const width = geo.boundingBox.max.x - geo.boundingBox.min.x;
       
-      // Increased depth for a pronounced magazine-like droop
+      // Depth of the concave curve
       const CURVE_DEPTH = width * 0.15;
 
       for (let i = 0; i < pos.count; i++) {
@@ -133,11 +138,12 @@ export default function Book() {
         // Normalize x from 0 to 1 across the book
         const nx = width > 0 ? (x - minX) / width : 0.5;
         
-        // Droop heavily on the right side
+        // Curve shape
         const curveAmount = Math.pow(nx, 2.5);
         
-        // Modify local Z. Subtracting pushes it "backwards" locally
-        pos.setZ(i, z - CURVE_DEPTH * curveAmount);
+        // Modify local Z. ADDING pushes it "forward" towards the camera,
+        // making the right edge of the book curl inwards (concave).
+        pos.setZ(i, z + CURVE_DEPTH * curveAmount);
       }
       
       pos.needsUpdate = true;

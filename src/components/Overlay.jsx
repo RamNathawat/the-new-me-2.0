@@ -78,6 +78,57 @@ const Overlay = memo(function Overlay() {
       );
     });
 
+    // Awwwards-level Hero Text Spring Entrance ("NEW ME")
+    // Using from() so it animates TO its CSS state (preserving the curved rotations)
+    gsap.from('.giant-word', {
+      y: 150,
+      scale: 0.8,
+      opacity: 0,
+      duration: 1.6,
+      ease: 'back.out(1.5)',
+      stagger: 0.15,
+      delay: 0.2 // Wait a beat for the 3D scene to initialize
+    });
+
+    // Hero Text Parallax (scrolls horizontally outwards on scroll)
+    gsap.to('.giant-word--new', {
+      xPercent: -80,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#s-hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
+
+    gsap.to('.giant-word--me', {
+      xPercent: 80,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#s-hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
+
+    // Awwwards-level Illustration Grid Staggered Bounce (The 4 Boxes)
+    gsap.fromTo('.hero__box',
+      { y: 200, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'back.out(1.2)',
+        stagger: 0.1,
+        scrollTrigger: {
+          trigger: '.boxes__container',
+          start: 'top 85%'
+        }
+      }
+    );
+
     // Hero botanical drawing and signature animations removed because the elements were replaced by a static illustration
 
     // Scroll-driven parallax for decorative vectors (if any remain)
