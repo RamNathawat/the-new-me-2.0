@@ -78,32 +78,23 @@ const Overlay = memo(function Overlay() {
       );
     });
 
-    // Awwwards-level Hero Text Spring Entrance ("NEW ME")
-    // Using from() so it animates TO its CSS state (preserving the curved rotations)
-    gsap.from('.giant-word', {
-      y: 150,
-      scale: 0.8,
-      opacity: 0,
-      duration: 1.6,
-      ease: 'back.out(1.5)',
-      stagger: 0.15,
-      delay: 0.2 // Wait a beat for the 3D scene to initialize
-    });
-
-    // Hero Text Parallax (scrolls horizontally outwards on scroll)
-    gsap.to('.giant-word--new', {
-      xPercent: -80,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#s-hero',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: true
+    // Awwwards-level Hero Text Marquee Entrance ("NEW ME")
+    // Slide in from the right smoothly
+    gsap.fromTo('.giant-word', 
+      { x: '100vw', opacity: 0 },
+      {
+        x: 0,
+        opacity: 1,
+        duration: 1.6,
+        ease: 'power3.out',
+        stagger: 0.1,
+        delay: 0.2
       }
-    });
+    );
 
-    gsap.to('.giant-word--me', {
-      xPercent: 80,
+    // Hero Text Parallax (scrolls left on scroll down like a marquee)
+    gsap.to('.giant-word', {
+      xPercent: -100,
       ease: 'none',
       scrollTrigger: {
         trigger: '#s-hero',
@@ -1051,16 +1042,7 @@ const Overlay = memo(function Overlay() {
 
   // Strict scroll lock during takeover
   useEffect(() => {
-    // Fade out scroll cue on scroll
-    gsap.to('#scroll-cue', {
-      scrollTrigger: {
-        trigger: "body",
-        start: "top top",
-        toggleActions: "play none none reverse"
-      },
-      opacity: 0,
-      duration: 0.5
-    });
+
 
     const killScroll = (e) => {
       if (useStore.getState().viewMode === 'takeover') {
