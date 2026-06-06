@@ -255,8 +255,10 @@ a { color:inherit; text-decoration:none; }
 .header__cta:hover { transform:scale(1.02); background:var(--cream); box-shadow: 0 4px 22px rgba(0,0,0,.08); }
 .header__cta-thumb {
   width:28px; height:36px;
-  background: var(--sage-light);
   border-radius:3px;
+  object-fit: cover;
+  transform: rotate(-10deg);
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
 }
 
 /* ── Layout & Typography Utilities ──────────────── */
@@ -632,15 +634,33 @@ a { color:inherit; text-decoration:none; }
    ABOUT THE AUTHOR
    ═══════════════════════════════════════════════════ */
 .s--author {
-  background: transparent;
+  background: var(--cream); /* Or transparent, if it blends from above */
   min-height: 100vh;
-  padding: 5rem 0 4rem;
+  padding: 8rem 0 6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.author__container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 5vw;
+}
+
+.author__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .author__portrait-wrap {
   position: relative;
   width: fit-content;
-  margin-bottom: 0.5rem;
+  margin: 0 auto 2rem;
   padding: 12px;
 }
 .author__portrait {
@@ -661,10 +681,28 @@ a { color:inherit; text-decoration:none; }
   50% { transform: scale(1.04); opacity: 0.4; }
 }
 
+.author__headline {
+  font-family: 'font-1', var(--ff);
+  font-size: clamp(4rem, 8vw, 8rem);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--sage-deep);
+  margin-bottom: 2.5rem;
+  text-transform: uppercase;
+}
+
+.author__content .body {
+  max-width: 640px;
+  margin: 0 auto 1.5rem;
+  text-align: center;
+}
+
 .author__quote {
-  display: flex; flex-direction: column; align-items: flex-start;
-  margin-top: 1rem; padding-top: 1.8rem;
-  border-top: 1px solid rgba(0,0,0,.06);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  margin: 3rem auto 0; padding-top: 2.5rem;
+  border-top: 1px solid rgba(0,0,0,.08);
+  max-width: 500px;
 }
 .author__quote-mark { width:24px; height:auto; color:var(--sage-light); margin-bottom:.8rem; }
 .author__quote-text {
